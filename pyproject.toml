@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "odm-search-mcp"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+odm-search-mcp = "odm_search_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["odm_search_mcp"]
