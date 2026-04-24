@@ -1,6 +1,7 @@
 # Running PHES-ODM Search MCP in Docker
 
-This guide covers building and running the server as a Docker container, and deploying it publicly on an AWS EC2 instance running Debian Linux.
+This guide covers building and running the server as a Docker container,
+and deploying it publicly on an AWS EC2 instance running Debian Linux.
 
 ---
 
@@ -39,7 +40,11 @@ Build and run everything locally using Docker Compose:
 docker compose up --build
 ```
 
-The HTTP endpoint will be available at `http://localhost/mcp`.
+The default transport is streamable HTTP; the endpoint is at
+`http://localhost/mcp`.
+To use the SSE transport instead, set `ODM_TRANSPORT=sse` (see
+[Environment variables](#environment-variables)) — the endpoint becomes
+`http://localhost/sse`.
 
 To stop:
 
@@ -54,11 +59,13 @@ docker compose down
 The `Dockerfile` uses a two-stage build:
 
 | Stage | Purpose |
-|-------|---------|
-| **builder** | Installs Python dependencies, pre-downloads the `all-MiniLM-L6-v2` sentence-transformers model (~90 MB), and generates the embeddings index from the schema — all baked into the image so the container starts immediately without a network fetch or index build at runtime. |
+| --------- | ------- |
+| **builder** | Installs Python dependencies, pre-downloads the `all-MiniLM-L6-v2` model (~90 MB), and generates the embeddings index — all baked into the image so the container starts immediately without a network fetch or index build at runtime. |
 | **runtime** | Slim final image containing only what is needed to run the server. |
 
-The embeddings index (`embeddings/`) is generated during the image build (~4 MB) and does **not** need to exist in the source tree beforehand. If you update `odm_v3.yaml`, rebuild the image to re-index.
+The embeddings index (`embeddings/`) is generated during the image build
+(~4 MB) and does **not** need to exist in the source tree beforehand.
+If you update `odm_v3.yaml`, rebuild the image to re-index.
 
 `docker-compose.yml` defines three services:
 
@@ -249,17 +256,24 @@ You should see the server respond to the HTTP request.
 
 ### 10. Connect an MCP client
 
+The endpoint depends on the transport configured in your container:
+
+| Transport       | URL                              |
+| --------------- | -------------------------------- |
+| Streamable HTTP | `http://<PUBLIC-IP>/mcp`         |
+| SSE             | `http://<PUBLIC-IP>/sse`         |
+
 #### Claude Desktop
 
 Edit `claude_desktop_config.json` on your local machine:
 
 | OS | Path |
-|----|------|
+| -- | ---- |
 | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
 | Linux | `~/.config/Claude/claude_desktop_config.json` |
 
-Add (or merge):
+**Streamable HTTP:**
 
 ```json
 {
@@ -271,12 +285,33 @@ Add (or merge):
 }
 ```
 
+**SSE:**
+
+```json
+{
+  "mcpServers": {
+    "phes-odm-search": {
+      "url": "http://<PUBLIC-IP>/sse",
+      "transport": "sse"
+    }
+  }
+}
+```
+
 Restart Claude Desktop.
 
 #### Claude Code CLI
 
+**Streamable HTTP:**
+
 ```bash
 claude mcp add phes-odm-search --transport http http://<PUBLIC-IP>/mcp
+```
+
+**SSE:**
+
+```bash
+claude mcp add phes-odm-search --transport sse http://<PUBLIC-IP>/sse
 ```
 
 ---
@@ -356,6 +391,7 @@ The MCP server reads configuration from these environment variables (all have se
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `ODM_TRANSPORT` | `http` | MCP transport: `http` (streamable HTTP) or `sse` |
 | `ODM_SCHEMA` | `odm_search_mcp/data/schemas/odm_v3.yaml` | Path to the LinkML schema file |
 | `ODM_STORE` | `embeddings` | Directory for the cached embeddings index |
 | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model name |

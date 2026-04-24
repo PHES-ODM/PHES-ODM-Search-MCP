@@ -5,6 +5,7 @@ services:
     image: phes-odm-search-mcp:latest
     restart: unless-stopped
     environment:
+      ODM_TRANSPORT: "http"
       ODM_HOST: "0.0.0.0"
       ODM_PORT: "8000"
     expose:

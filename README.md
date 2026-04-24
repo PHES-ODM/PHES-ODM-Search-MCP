@@ -30,10 +30,10 @@ Embeddings are stored under `embeddings/` (created automatically on first run).
 
 ## Deployment
 
-| Guide                   | Description                                                                               |
-|-------------------------|-------------------------------------------------------------------------------------------|
-| [DOCKER.md](DOCKER.md)  | Run the server as a Docker container; deploy to AWS EC2 with nginx and Let's Encrypt TLS  |
-| [SERVER.md](SERVER.md)  | Deploy directly on Debian Linux with nginx and systemd (no Docker)                        |
+| Guide                           | Description                                                                               |
+|---------------------------------|-------------------------------------------------------------------------------------------|
+| [DOCKER.md](DOCKER.md)          | Run the server as a Docker container; deploy to AWS EC2 with nginx and Let's Encrypt TLS  |
+| [SERVER.md](SERVER.md)          | Deploy directly on Debian Linux with nginx and systemd (no Docker)                        |
 
 ---
 
@@ -69,7 +69,7 @@ vectors and are much faster.
 | `--store DIR` | `ODM_STORE` | `embeddings/` | Directory for cached embeddings |
 | `--model NAME` | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
 | `--rebuild` | — | false | Rebuild the embeddings index and exit (does not start the server) |
-| `--transport` | — | `stdio` | MCP transport (`stdio` or `http`) |
+| `--transport` | — | `stdio` | MCP transport: `stdio`, `http` (streamable HTTP), or `sse` |
 
 Use `--rebuild` to pre-build (or re-build) the embeddings index without
 starting the server.  The process exits automatically once the index is
@@ -88,10 +88,16 @@ python -m odm_search_mcp.server --rebuild
 python -m odm_search_mcp.server --model all-mpnet-base-v2 --rebuild
 ```
 
-**Example — run over HTTP transport:**
+**Example — run over streamable HTTP transport:**
 
 ```bash
 python -m odm_search_mcp.server --transport http
+```
+
+**Example — run over SSE transport:**
+
+```bash
+python -m odm_search_mcp.server --transport sse
 ```
 
 ### 3. Register with Claude Desktop (stdio)
