@@ -40,6 +40,7 @@ Differences between the two HTTP-based transports are called out inline.
 ## Prerequisites
 
 - A Debian 12 or Ubuntu 22.04 host with at least **1 GB RAM** and **2 GB free disk space** (the embedding model is ~90 MB; the full sentence-transformers stack with PyTorch is larger).
+- If using AWS EC2, a Debian Linux instance should have at least 12 GB free disk space.
 - A non-root user with `sudo` access.
 - The host's **public IP address** or a DNS name pointing to it (needed for nginx and the client configuration).
 - Ports **80** (and **443** if using TLS) reachable from clients — open these in your AWS Security Group or equivalent firewall.
