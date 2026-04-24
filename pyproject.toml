@@ -7,7 +7,7 @@ name = "odm-search-mcp"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=3.0.0",
     "sentence-transformers>=2.2.0",
     "numpy>=1.24.0",
     "PyYAML>=6.0",
