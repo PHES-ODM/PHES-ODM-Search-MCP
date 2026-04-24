@@ -28,10 +28,10 @@ Differences between the two HTTP-based transports are called out inline.
   - [6. Create a systemd service](#6-create-a-systemd-service)
   - [7. Install and configure nginx](#7-install-and-configure-nginx)
   - [8. Open the firewall](#8-open-the-firewall)
-  - [9. Connect an MCP client](#9-connect-an-mcp-client)
+  - [9. TLS with Let's Encrypt](#9-tls-with-lets-encrypt)
+  - [10. Connect an MCP client](#10-connect-an-mcp-client)
     - [Claude Desktop](#claude-desktop)
     - [Claude Code CLI](#claude-code-cli)
-  - [10. Optional — TLS with Let's Encrypt](#10-optional--tls-with-lets-encrypt)
   - [Maintenance](#maintenance)
     - [Rebuilding the embeddings index](#rebuilding-the-embeddings-index)
 
@@ -114,28 +114,13 @@ Create an isolated virtual environment and install the requirements:
 ```bash
 sudo -u odm bash -c "
     python3 -m venv /home/odm/venv
-    /home/odm/venv/bin/pip install --upgrade pip
-    /home/odm/venv/bin/pip install -r /home/odm/PHES-ODM-Search-MCP/requirements.txt
+    mkdir -p /home/odm/tmp
+    TMPDIR=/home/odm/tmp /home/odm/venv/bin/pip install \
+        -r /home/odm/PHES-ODM-Search-MCP/requirements.txt
 "
 ```
 
 The `sentence-transformers` package pulls in PyTorch (CPU build) and several other libraries; expect the download to take a few minutes.
-
-> **Tip — out-of-disk-space error during install**
->
-> pip extracts wheel archives into the system temporary directory (`/tmp`).
-> On many cloud instances `/tmp` is a small `tmpfs` mount and the PyTorch wheel
-> alone can require several hundred MB of scratch space.  If the install fails
-> with a disk-space error, redirect the temp directory to the home partition
-> before retrying:
->
-> ```bash
-> sudo -u odm bash -c "
->     mkdir -p /home/odm/tmp
->     TMPDIR=/home/odm/tmp /home/odm/venv/bin/pip install \
->         -r /home/odm/PHES-ODM-Search-MCP/requirements.txt
-> "
-> ```
 
 ---
 
@@ -210,9 +195,7 @@ Install nginx:
 sudo apt install -y nginx
 ```
 
-Replace `your.domain.example` with your server's public IP address or DNS name.
-
-### Streamable HTTP transport (recommended)
+Create a virtual-host configuration.  Replace `your.domain.example` with your server's public IP address or DNS name:
 
 ```bash
 sudo tee /etc/nginx/sites-available/PHES-ODM-Search-MCP > /dev/null <<'EOF'
@@ -232,49 +215,6 @@ server {
 }
 EOF
 ```
-
-### SSE transport (alternative)
-
-SSE connections are long-lived, so nginx must not buffer the event stream.
-Use this config instead if you chose `--transport sse` in section 6:
-
-```bash
-sudo tee /etc/nginx/sites-available/PHES-ODM-Search-MCP > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name your.domain.example;
-
-    # SSE event stream — disable buffering so events reach the client immediately
-    location /sse {
-        proxy_pass         http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-        proxy_set_header   Connection        '';
-
-        proxy_buffering    off;
-        proxy_cache        off;
-        proxy_read_timeout 3600s;
-
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-    }
-
-    # Client-to-server messages (regular HTTP POST)
-    location /messages {
-        proxy_pass         http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-```
-
-### Enable the site
 
 Enable the site, disable the default site that ships with nginx, and reload:
 
@@ -302,72 +242,10 @@ If the host is an **AWS EC2** instance, update the instance's Security Group to 
 
 ---
 
-## 9. Connect an MCP client
+## 9. TLS with Let's Encrypt
 
-The client endpoint depends on which transport you chose:
-
-| Transport       | URL                                   |
-| --------------- | ------------------------------------- |
-| Streamable HTTP | `http://your.domain.example/mcp`      |
-| SSE             | `http://your.domain.example/sse`      |
-
-### Claude Desktop
-
-Edit `claude_desktop_config.json` on the client machine.  The file location
-depends on the operating system:
-
-| OS | Path |
-| -- | ---- |
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
-| Linux | `~/.config/Claude/claude_desktop_config.json` |
-
-**Streamable HTTP transport:**
-
-```json
-{
-  "mcpServers": {
-    "phes-odm-search": {
-      "url": "http://your.domain.example/mcp"
-    }
-  }
-}
-```
-
-**SSE transport:**
-
-```json
-{
-  "mcpServers": {
-    "phes-odm-search": {
-      "url": "http://your.domain.example/sse",
-      "transport": "sse"
-    }
-  }
-}
-```
-
-### Claude Code CLI
-
-**Streamable HTTP transport:**
-
-```bash
-claude mcp add phes-odm-search --transport http \
-    http://your.domain.example/mcp
-```
-
-**SSE transport:**
-
-```bash
-claude mcp add phes-odm-search --transport sse \
-    http://your.domain.example/sse
-```
-
----
-
-## 10. Optional — TLS with Let's Encrypt
-
-Serving over HTTPS is strongly recommended when the server is accessible from the public internet.
+Serving over HTTPS is strongly recommended when the server is accessible from
+the public internet.
 
 Install Certbot:
 
@@ -381,13 +259,57 @@ Obtain and install a certificate (requires a valid DNS name pointing to the serv
 sudo certbot --nginx -d your.domain.example
 ```
 
-Certbot automatically modifies the nginx configuration and sets up automatic renewal.  Reload nginx after the certificate is issued:
+Certbot automatically modifies the nginx configuration and sets up automatic
+renewal.  Reload nginx after the certificate is issued:
 
 ```bash
 sudo systemctl reload nginx
 ```
 
-Update any client URLs to use `https://your.domain.example/mcp`.
+---
+
+## 10. Connect an MCP client
+
+With the server running and nginx in place, MCP clients connect over HTTP
+using the URL:
+
+```text
+https://your.domain.example/mcp
+```
+
+### Claude Desktop
+
+Edit `claude_desktop_config.json` on the client machine.  The file location
+depends on the operating system:
+
+| OS | Path |
+| -- | ---- |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+Add (or merge) the following:
+
+```json
+{
+  "mcpServers": {
+    "phes-odm-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://phes-odm-search-mcp.phes-odm.org/mcp"
+      ]
+    }
+  }
+}
+```
+
+### Claude Code CLI
+
+```bash
+claude mcp add phes-odm-search --transport http http://your.domain.example/mcp
+```
 
 ---
 
@@ -405,7 +327,7 @@ Update any client URLs to use `https://your.domain.example/mcp`.
 
 Always use the virtual-environment Python (`/home/odm/venv/bin/python`), not the
 system `python3`.  Using the wrong interpreter will produce
-`ModuleNotFoundError: No module named 'fastmcp'`.
+`ModuleNotFoundError: No module named 'mcp'`.
 
 ```bash
 sudo systemctl stop PHES-ODM-Search-MCP
