@@ -298,7 +298,7 @@ Add (or merge) the following:
       "args": [
         "-y",
         "mcp-remote",
-        "https://phes-odm-search-mcp.phes-odm.org/mcp"
+        "https://your.domain.example/mcp"
       ]
     }
   }
