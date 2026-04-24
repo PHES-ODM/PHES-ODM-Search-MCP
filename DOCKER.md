@@ -3,6 +3,10 @@
 This guide covers building and running the server as a Docker container,
 and deploying it publicly on an AWS EC2 instance running Debian Linux.
 
+Running as a Docker container has not yet been tested. See
+[SERVER.md](SERVER.md) for deploying the Search MCP on a Debian Linux instance
+without Docker, which has been successfully tested.
+
 ---
 
 ## Contents
@@ -22,6 +26,8 @@ and deploying it publicly on an AWS EC2 instance running Debian Linux.
     - [8. Open the firewall (AWS Security Group)](#8-open-the-firewall-aws-security-group)
     - [9. Verify the server is reachable](#9-verify-the-server-is-reachable)
     - [10. Connect an MCP client](#10-connect-an-mcp-client)
+      - [Claude Desktop](#claude-desktop)
+      - [Claude Code CLI](#claude-code-cli)
     - [11. Optional — TLS with Let's Encrypt](#11-optional--tls-with-lets-encrypt)
   - [Environment variables](#environment-variables)
   - [Maintenance](#maintenance)
