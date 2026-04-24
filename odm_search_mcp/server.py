@@ -22,7 +22,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from .embedder import ODMEmbedder
 
@@ -56,7 +56,14 @@ mcp = FastMCP(
 )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
 def search_odm_parts(
     query: str,
     top_n: int = 10,
@@ -150,7 +157,14 @@ def search_odm_parts(
     return output
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
 def get_enum_values(enum_name: str) -> list[dict[str, str]]:
     """Return all permissible values for a named enumeration.
 
@@ -173,7 +187,14 @@ def get_enum_values(enum_name: str) -> list[dict[str, str]]:
     return _embedder.get_enum_values(enum_name)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
 def get_class_slots(class_name: str) -> list[dict[str, Any]]:
     """Return all slots for a named class with their schema-level details.
 
@@ -202,7 +223,14 @@ def get_class_slots(class_name: str) -> list[dict[str, Any]]:
     return _embedder.get_class_slots(class_name)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
 def list_part_types() -> list[str]:
     """Return all distinct schema_type values present in the loaded index."""
     if _embedder is None:
@@ -221,8 +249,9 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--model",   default=os.environ.get("ODM_MODEL",   DEFAULT_MODEL))
     p.add_argument("--rebuild", action="store_true",
                    help="Rebuild the embeddings index and exit (does not start the server)")
-    p.add_argument("--transport", default="stdio", choices=["stdio", "http"],
-                   help="MCP transport (default: stdio)")
+    p.add_argument("--transport", default=os.environ.get("ODM_TRANSPORT", "stdio"),
+                   choices=["stdio", "http", "sse"],
+                   help="MCP transport (default: stdio; env: ODM_TRANSPORT)")
     p.add_argument("--host", default=os.environ.get("ODM_HOST", "127.0.0.1"),
                    help="Host address for HTTP server (default: 127.0.0.1)")
     p.add_argument("--port", type=int, default=int(os.environ.get("ODM_PORT", "8000")),
@@ -258,11 +287,10 @@ def main() -> None:
         args.model,
     )
 
-    if args.transport == "http":
-        import uvicorn
-        uvicorn.run(mcp.streamable_http_app(), host=args.host, port=args.port, log_level="info")
+    if args.transport in ("http", "sse"):
+        mcp.run(transport=args.transport, host=args.host, port=args.port)
     else:
-        mcp.run(transport=args.transport)
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
