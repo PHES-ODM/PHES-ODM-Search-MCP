@@ -18,9 +18,13 @@ PHES-ODM-Search-MCP/
 │           └── odm_v3.yaml   # LinkML schema for PHES-ODM v3
 ├── prompt/
 │   └── TASK.md            # Original project specification
+├── Dockerfile             # Docker image definition
+├── docker-compose.yml     # Docker Compose service configuration
+├── nginx.conf             # nginx reverse proxy configuration
 ├── pyproject.toml         # Package build configuration
 ├── requirements.txt
 ├── README.md
+├── DOCKER.md              # Deployment guide (Docker + AWS EC2)
 └── SERVER.md              # Deployment guide (nginx + systemd on Debian)
 ```
 
