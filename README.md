@@ -135,6 +135,50 @@ in the virtual environment you used to run the `pip install` command and run:
 which python3
 ```
 
+### 4. Register with Claude Code (stdio)
+
+There are two ways to register the server with Claude Code.
+
+#### Option A — CLI (recommended)
+
+```bash
+claude mcp add phes-odm-search \
+  --transport stdio \
+  --env ODM_STORE=/absolute/path/to/PHES-ODM-Search-MCP/embeddings \
+  -- /absolute/path/to/python3 -m odm_search_mcp.server
+```
+
+Claude Code does not pass a working directory to the spawned server process,
+so set `ODM_STORE` to an absolute path to ensure embeddings are always written
+to the same location.
+
+By default the entry is stored under local scope (`~/.claude.json`) and is not
+shared. Add `--scope project` to write to `.mcp.json` in the current directory
+(committed to version control and shared with the team), or `--scope user` to
+make it available across all your projects.
+
+#### Option B — edit `.mcp.json` directly (project scope)
+
+Create `.mcp.json` in the project root:
+
+```json
+{
+  "mcpServers": {
+    "phes-odm-search": {
+      "type": "stdio",
+      "command": "/absolute/path/to/python3",
+      "args": ["-m", "odm_search_mcp.server"],
+      "env": {
+        "ODM_STORE": "/absolute/path/to/PHES-ODM-Search-MCP/embeddings"
+      }
+    }
+  }
+}
+```
+
+To get the `python3` path, activate the virtual environment you used for `pip install`
+and run `which python3`.
+
 ---
 
 ## Tools
