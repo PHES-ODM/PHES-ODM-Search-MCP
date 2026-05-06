@@ -150,7 +150,8 @@ claude mcp add phes-odm-search \
 
 Claude Code does not pass a working directory to the spawned server process,
 so set `ODM_STORE` to an absolute path to ensure embeddings are always written
-to the same location.
+to the same location. This can be an empty directory, in which case the server
+will generate and save the embeddings here.
 
 By default the entry is stored under local scope (`~/.claude.json`) and is not
 shared. Add `--scope project` to write to `.mcp.json` in the current directory
