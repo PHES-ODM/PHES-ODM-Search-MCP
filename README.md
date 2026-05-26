@@ -21,8 +21,7 @@ PHES-ODM-Search-MCP/
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker Compose service configuration
 ├── nginx.conf             # nginx reverse proxy configuration
-├── pyproject.toml         # Package build configuration
-├── requirements.txt
+├── pyproject.toml         # Package build configuration and dependencies
 ├── README.md
 ├── DOCKER.md              # Deployment guide (Docker + AWS EC2)
 └── SERVER.md              # Deployment guide (nginx + systemd on Debian)
@@ -34,10 +33,11 @@ Embeddings are stored under `embeddings/` (created automatically on first run).
 
 ## Deployment
 
-| Guide                           | Description                                                                               |
-|---------------------------------|-------------------------------------------------------------------------------------------|
-| [DOCKER.md](DOCKER.md)          | Run the server as a Docker container; deploy to AWS EC2 with nginx and Let's Encrypt TLS  |
-| [SERVER.md](SERVER.md)          | Deploy directly on Debian Linux with nginx and systemd (no Docker)                        |
+| Guide                           | Description                                                                                       |
+|---------------------------------|---------------------------------------------------------------------------------------------------|
+| [This Document](#setup)         | The Setup section below explains how to use the skill locally with Claude Desktop or Claude Code  |
+| [DOCKER.md](DOCKER.md)          | Run the server as a Docker container; deploy to AWS EC2 with nginx and Let's Encrypt TLS          |
+| [SERVER.md](SERVER.md)          | Deploy directly on Debian Linux with nginx and systemd (no Docker)                                |
 
 ---
 
@@ -133,6 +133,12 @@ in the virtual environment you used to run the `pip install` command and run:
 
 ```console
 which python3
+```
+
+or the following on Windows:
+
+```console
+where python3
 ```
 
 ### 4. Register with Claude Code (stdio)
