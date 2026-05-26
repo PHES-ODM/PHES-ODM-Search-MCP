@@ -3,7 +3,8 @@ Parse the PHES-ODM LinkML schema into a structured index.
 
 Each ODMPart has:
   - part_id, label, schema_type (class/slot/enum/enum_value), description
-  - For slots: belongs_to_classes, slot_ranges, required_by_classes
+  - For slots: belongs_to_classes, slot_ranges, required_by_classes,
+               minimum_value, maximum_value
   - For enum_values: belongs_to_enum, used_by_slots, used_by_classes
 """
 
@@ -29,15 +30,22 @@ class ODMPart:
     belongs_to_classes: list[str] = field(default_factory=list)   # for slots
     slot_ranges: list[str] = field(default_factory=list)           # for slots
     required_by_classes: list[str] = field(default_factory=list)  # for slots: classes where required=true
-    belongs_to_enum: Optional[str] = None                          # for enum_values
+    minimum_value: Optional[float] = None                           # for slots
+    maximum_value: Optional[float] = None                           # for slots
+    belongs_to_enum: list[str] = field(default_factory=list)       # for enum_values
     used_by_slots: list[str] = field(default_factory=list)         # for enum_values
     used_by_classes: list[str] = field(default_factory=list)       # for enum_values
 
     def embed_text(self) -> str:
-        """Text to embed: label + description."""
         parts = [self.label]
         if self.description:
             parts.append(self.description)
+        if self.belongs_to_classes:
+            parts.append("used in: " + ", ".join(self.belongs_to_classes))
+        if self.belongs_to_enum:
+            parts.append("enumeration: " + ", ".join(self.belongs_to_enum))
+        if self.slot_ranges:
+            parts.append("type: " + ", ".join(self.slot_ranges))
         return " ".join(parts)
 
 
@@ -109,6 +117,25 @@ def _build_enum_to_slots_classes(schema: dict) -> dict[str, dict]:
     return result
 
 
+def _build_slot_min_max(schema: dict) -> tuple[dict[str, float], dict[str, float]]:
+    """Return (slot_minimums, slot_maximums) from slot_usage across all classes.
+
+    The first non-None value found for each slot wins; ties broken by class
+    iteration order.
+    """
+    minimums: dict[str, float] = {}
+    maximums: dict[str, float] = {}
+    for class_name, class_data in (schema.get("classes") or {}).items():
+        if class_name in _IGNORED_CLASSES:
+            continue
+        for slot_name, usage in (class_data.get("slot_usage") or {}).items():
+            if slot_name not in minimums and usage.get("minimum_value") is not None:
+                minimums[slot_name] = float(usage["minimum_value"])
+            if slot_name not in maximums and usage.get("maximum_value") is not None:
+                maximums[slot_name] = float(usage["maximum_value"])
+    return minimums, maximums
+
+
 def _build_slot_labels(schema: dict) -> tuple[dict[str, str], dict[str, str]]:
     """
     Return (slot_titles, slot_descriptions) by scanning slot_usage across all classes.
@@ -127,10 +154,13 @@ def _build_slot_labels(schema: dict) -> tuple[dict[str, str], dict[str, str]]:
     return titles, descriptions
 
 
-def load_parts(schema_path: str | Path) -> list[ODMPart]:
-    """Load all ODM parts from the LinkML schema YAML."""
-    with open(schema_path, encoding="utf-8") as fh:
-        schema = yaml.safe_load(fh)
+def load_parts(schema_source: dict | str | Path) -> list[ODMPart]:
+    """Load all ODM parts from a pre-parsed schema dict or a LinkML YAML file path."""
+    if isinstance(schema_source, dict):
+        schema = schema_source
+    else:
+        with open(schema_source, encoding="utf-8") as fh:
+            schema = yaml.safe_load(fh)
 
     classes = schema.get("classes") or {}
     slots = schema.get("slots") or {}
@@ -141,6 +171,7 @@ def load_parts(schema_path: str | Path) -> list[ODMPart]:
     slot_required_classes = _build_slot_required_classes(schema)
     enum_to_slots_classes = _build_enum_to_slots_classes(schema)
     slot_titles, slot_descriptions = _build_slot_labels(schema)
+    slot_minimums, slot_maximums = _build_slot_min_max(schema)
 
     # Map each enum value to all enums that contain it; first entry is primary.
     val_to_enums: dict[str, list[str]] = {}
@@ -178,6 +209,8 @@ def load_parts(schema_path: str | Path) -> list[ODMPart]:
             belongs_to_classes=slot_to_classes.get(slot_name, []),
             slot_ranges=slot_to_ranges.get(slot_name, []),
             required_by_classes=slot_required_classes.get(slot_name, []),
+            minimum_value=slot_minimums.get(slot_name),
+            maximum_value=slot_maximums.get(slot_name),
         ))
 
     # 3. Enums
@@ -222,7 +255,7 @@ def load_parts(schema_path: str | Path) -> list[ODMPart]:
                 label=vd.get("title") or val_name,
                 schema_type="enum_value",
                 description=vd.get("description") or "",
-                belongs_to_enum=enum_name,
+                belongs_to_enum=all_enums_for_val,
                 used_by_slots=used_by_slots,
                 used_by_classes=used_by_classes,
             ))

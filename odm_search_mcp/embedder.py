@@ -3,7 +3,7 @@ Manage embeddings for PHES-ODM parts.
 
 Embeddings are stored to disk as:
   <store_dir>/embeddings.npy   — float32 array of shape (N, D)
-  <store_dir>/metadata.json    — list of serialised ODMPart dicts
+  <store_dir>/metadata.json    — {"schema_mtime": float, "parts": [ODMPart dicts]}
 
 All part data is derived from the LinkML schema YAML; no CSV file is required.
 """
@@ -62,6 +62,7 @@ class ODMEmbedder:
         self.parts: list[ODMPart] = []
         self.embeddings: Optional[np.ndarray] = None  # (N, D)
         self._schema: Optional[dict] = None
+        self._model = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -71,7 +72,8 @@ class ODMEmbedder:
     # Add new ODMPart fields here so stale caches are detected and rebuilt.
     _REQUIRED_META_FIELDS = frozenset({
         "part_id", "label", "schema_type", "description",
-        "belongs_to_classes", "slot_ranges",
+        "belongs_to_classes", "slot_ranges", "required_by_classes",
+        "minimum_value", "maximum_value",
         "belongs_to_enum", "used_by_slots", "used_by_classes",
     })
 
@@ -94,17 +96,24 @@ class ODMEmbedder:
             self._save()
 
     def _cache_is_fresh(self, meta_path: Path) -> bool:
-        """Return False if the cached metadata is missing any required fields."""
+        """Return False if cached metadata is stale, missing required fields, or schema changed."""
         try:
             with open(meta_path, encoding="utf-8") as fh:
-                meta = json.load(fh)
-            if not meta:
+                data = json.load(fh)
+            if not isinstance(data, dict):
+                return False  # old list format
+            parts = data.get("parts") or []
+            if not parts:
                 return False
-            # csv_part_type presence means cache was built from the old CSV pipeline
-            if "csv_part_type" in meta[0]:
+            if "csv_part_type" in parts[0]:
                 return False
-            return self._REQUIRED_META_FIELDS.issubset(meta[0].keys())
-        except Exception:
+            if not self._REQUIRED_META_FIELDS.issubset(parts[0].keys()):
+                return False
+            if data.get("schema_mtime") != self.schema_path.stat().st_mtime:
+                return False
+            return True
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as exc:
+            logger.warning("Cache freshness check failed (%s) — will rebuild.", exc)
             return False
 
     def rebuild(self) -> None:
@@ -135,8 +144,6 @@ class ODMEmbedder:
         if self.embeddings is None or not self.parts:
             raise RuntimeError("Embeddings not loaded. Call load_or_build() first.")
 
-        from sentence_transformers import SentenceTransformer  # lazy import
-
         model = self._get_model()
         query_vec = model.encode([query], show_progress_bar=False)[0].astype(np.float32)
 
@@ -161,8 +168,8 @@ class ODMEmbedder:
         """Return all slots for *class_name* with their schema-level details.
 
         Each returned dict contains the part_id, title, description, range list,
-        pattern, identifier flag, and required flag as defined in slot_usage for
-        this class.
+        pattern, identifier flag, required flag, and minimum/maximum values as
+        defined in slot_usage for this class.
         """
         schema = self._get_schema()
         classes = schema.get("classes") or {}
@@ -190,6 +197,8 @@ class ODMEmbedder:
                 if ao.get("range"):
                     ranges.append(ao["range"])
 
+            min_val = usage.get("minimum_value")
+            max_val = usage.get("maximum_value")
             result.append({
                 "part_id": slot_name,
                 "title": usage.get("title") or (part.label if part else ""),
@@ -198,6 +207,8 @@ class ODMEmbedder:
                 "pattern": usage.get("pattern") or "",
                 "identifier": bool(usage.get("identifier")),
                 "required": bool(usage.get("required")),
+                "minimum_value": float(min_val) if min_val is not None else None,
+                "maximum_value": float(max_val) if max_val is not None else None,
             })
 
         return result
@@ -228,8 +239,7 @@ class ODMEmbedder:
         return self._schema
 
     def _get_model(self):
-        # Cache the loaded model on the instance so we don't reload on every search
-        if not hasattr(self, "_model") or self._model is None:
+        if self._model is None:
             from sentence_transformers import SentenceTransformer
             logger.info("Loading sentence-transformer model: %s", self.model_name)
             self._model = SentenceTransformer(self.model_name)
@@ -237,7 +247,7 @@ class ODMEmbedder:
 
     def _build(self) -> None:
         """Parse parts and encode them."""
-        self.parts = load_parts(self.schema_path)
+        self.parts = load_parts(self._get_schema())
         texts = [p.embed_text() for p in self.parts]
         model = self._get_model()
         logger.info("Encoding %d parts…", len(texts))
@@ -248,16 +258,20 @@ class ODMEmbedder:
         """Persist embeddings and metadata to disk."""
         self.store_dir.mkdir(parents=True, exist_ok=True)
         np.save(self.store_dir / "embeddings.npy", self.embeddings)
-        meta = [asdict(p) for p in self.parts]
+        payload = {
+            "schema_mtime": self.schema_path.stat().st_mtime,
+            "parts": [asdict(p) for p in self.parts],
+        }
         with open(self.store_dir / "metadata.json", "w", encoding="utf-8") as fh:
-            json.dump(meta, fh, ensure_ascii=False, indent=2)
+            json.dump(payload, fh, ensure_ascii=False, indent=2)
         logger.info("Saved %d embeddings to %s", len(self.parts), self.store_dir)
 
     def _load(self) -> None:
         """Load embeddings and metadata from disk."""
         self.embeddings = np.load(self.store_dir / "embeddings.npy")
         with open(self.store_dir / "metadata.json", encoding="utf-8") as fh:
-            meta = json.load(fh)
+            data = json.load(fh)
+        meta = data["parts"]
         valid_fields = {f.name for f in ODMPart.__dataclass_fields__.values()}
         self.parts = [ODMPart(**{k: v for k, v in m.items() if k in valid_fields}) for m in meta]
         logger.info("Loaded %d embeddings from %s", len(self.parts), self.store_dir)
