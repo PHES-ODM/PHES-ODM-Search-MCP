@@ -194,8 +194,6 @@ and run `which python3`.
 
 Search for PHES-ODM parts using a natural language query.
 
-**Input parameters**
-
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `query` | string | *(required)* | Natural language description or title of the term to find |
@@ -210,8 +208,6 @@ Search for PHES-ODM parts using a natural language query.
 | `include_range` | boolean | `true` | For slot matches: include the list of allowed range types (e.g. `"string"`, an enum name, a class name); multiple values when `any_of` is used |
 | `include_required` | boolean | `true` | For slot matches: include the list of classes in which this slot is marked required; empty list means not required anywhere |
 | `include_enum_info` | boolean | `true` | For enum_value matches: include the parent enumeration name, the slots that accept it, and the classes those slots belong to |
-
-**Output**
 
 A JSON array of match objects, ordered by descending similarity score.
 Fields present depend on the `include_*` flags and the `type` of the
@@ -273,13 +269,9 @@ matched part.
 
 Return all permissible values for a named enumeration.
 
-**Input parameters**
-
 | Parameter   | Type   | Default       | Description                         |
 | ----------- | ------ | ------------- | ----------------------------------- |
 | `enum_name` | string | *(required)*  | The enumeration's schema identifier |
-
-**Output**
 
 A JSON array of value objects, in schema order. Each object has:
 
@@ -312,14 +304,10 @@ An error is returned if `enum_name` is not found in the schema.
 
 Return all slots belonging to a named class, with their full schema-level details.
 
-**Input parameters**
-
 | Parameter    | Type   | Default      | Description                        |
 | ------------ | ------ | ------------ | ---------------------------------- |
 | `class_name` | string | *(required)* | Schema identifier for the class,   |
 |              |        |              | e.g. `"wideNames"`, `"Sample"`     |
-
-**Output**
 
 A JSON array of slot objects, ordered as they appear in the class definition.
 Each object has:
@@ -370,6 +358,28 @@ Returns the list of all distinct `schema_type` values present in the loaded inde
 
 ```json
 ["class", "enum", "enum_value", "slot"]
+```
+
+---
+
+### `get_version`
+
+Returns version information for the running server instance.
+
+| Field | Description |
+| --- | --- |
+| `server_version` | Installed package version (e.g. `"0.1.0"`) |
+| `schema_name` | `name` field from the loaded ODM schema (e.g. `"ODMv3"`) |
+| `model` | Sentence-transformer model used for embeddings |
+| `parts_indexed` | Number of ODM parts in the search index |
+
+```json
+{
+  "server_version": "0.1.0",
+  "schema_name": "ODMv3",
+  "model": "all-MiniLM-L6-v2",
+  "parts_indexed": 2322
+}
 ```
 
 ---

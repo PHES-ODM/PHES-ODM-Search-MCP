@@ -1,7 +1,7 @@
 """
 PHES-ODM Embedding Search — MCP Server
 
-Provides tools: search_odm_parts, get_enum_values, get_class_slots, list_part_types
+Provides tools: search_odm_parts, get_enum_values, get_class_slots, list_part_types, get_version
 
 Usage
 -----
@@ -17,6 +17,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import logging
 import os
 from pathlib import Path
@@ -240,6 +241,45 @@ def get_class_slots(class_name: str) -> list[dict[str, Any]]:
     if _embedder is None:
         raise RuntimeError("Embedder not initialised.")
     return _embedder.get_class_slots(class_name)
+
+
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
+def get_version() -> dict[str, Any]:
+    """Return version information for this MCP server.
+
+    Returns
+    -------
+    A dict with:
+      - server_version: the installed package version (e.g. "0.1.0")
+      - schema_name:    the name field from the loaded ODM schema
+      - model:          the sentence-transformer model used for embeddings
+      - parts_indexed:  number of ODM parts in the search index
+    """
+    try:
+        server_version = importlib.metadata.version("odm-search-mcp")
+    except importlib.metadata.PackageNotFoundError:
+        server_version = "unknown"
+
+    if _embedder is None:
+        return {"server_version": server_version, "schema_name": None, "model": None, "parts_indexed": 0}
+
+    import yaml
+    with open(_embedder.schema_path, encoding="utf-8") as fh:
+        schema_name = yaml.safe_load(fh).get("name", "unknown")
+
+    return {
+        "server_version": server_version,
+        "schema_name": schema_name,
+        "model": _embedder.model_name,
+        "parts_indexed": len(_embedder.parts),
+    }
 
 
 @mcp.tool(
