@@ -72,8 +72,8 @@ class ODMEmbedder:
     # Add new ODMPart fields here so stale caches are detected and rebuilt.
     _REQUIRED_META_FIELDS = frozenset({
         "part_id", "label", "schema_type", "description",
-        "belongs_to_classes", "slot_ranges", "required_by_classes",
-        "minimum_value", "maximum_value",
+        "belongs_to_classes", "slot_ranges", "slot_ranges_by_class",
+        "required_by_classes", "minimum_value", "maximum_value",
         "belongs_to_enum", "used_by_slots", "used_by_classes",
     })
 

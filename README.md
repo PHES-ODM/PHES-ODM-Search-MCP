@@ -198,7 +198,7 @@ Search for PHES-ODM parts using a natural language query.
 |-----------|------|---------|-------------|
 | `query` | string | *(required)* | Natural language description or title of the term to find |
 | `top_n` | integer | `10` | Maximum number of results |
-| `part_types` | string[] \| null | `null` | Filter by schema type: `"class"`, `"slot"`, `"enum"`, `"enum_value"` |
+| `part_types` | string[] | `[]` | Filter by schema type: `"class"`, `"slot"`, `"enum"`, `"enum_value"`. Pass an empty array or omit to search all types. |
 | `include_score` | boolean | `true` | Include cosine similarity score |
 | `include_id` | boolean | `true` | Include part ID |
 | `include_label` | boolean | `true` | Include human-readable label |
@@ -206,7 +206,9 @@ Search for PHES-ODM parts using a natural language query.
 | `include_description` | boolean | `true` | Include part description |
 | `include_class_info` | boolean | `true` | For slot matches: include the list of classes the slot belongs to |
 | `include_range` | boolean | `true` | For slot matches: include the list of allowed range types (e.g. `"string"`, an enum name, a class name); multiple values when `any_of` is used |
+| `include_range_by_class` | boolean | `false` | For slot matches: include a `slot_ranges_by_class` map from class name to its specific range list. Only populated when ranges differ across classes; omitted otherwise. |
 | `include_required` | boolean | `true` | For slot matches: include the list of classes in which this slot is marked required; empty list means not required anywhere |
+| `include_min_max` | boolean | `true` | For slot matches: include `minimum_value` and `maximum_value` when specified in the schema; `null` when unconstrained |
 | `include_enum_info` | boolean | `true` | For enum_value matches: include the parent enumeration name, the slots that accept it, and the classes those slots belong to |
 
 A JSON array of match objects, ordered by descending similarity score.

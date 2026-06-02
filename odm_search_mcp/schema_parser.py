@@ -28,7 +28,8 @@ class ODMPart:
     schema_type: str          # "class", "slot", "enum", or "enum_value"
     description: str
     belongs_to_classes: list[str] = field(default_factory=list)   # for slots
-    slot_ranges: list[str] = field(default_factory=list)           # for slots
+    slot_ranges: list[str] = field(default_factory=list)           # for slots: union across all classes
+    slot_ranges_by_class: dict[str, list[str]] = field(default_factory=dict)  # for slots: per-class ranges
     required_by_classes: list[str] = field(default_factory=list)  # for slots: classes where required=true
     minimum_value: Optional[float] = None                           # for slots
     maximum_value: Optional[float] = None                           # for slots
@@ -60,20 +61,40 @@ def _build_slot_to_classes(schema: dict) -> dict[str, list[str]]:
     return result
 
 
-def _build_slot_to_ranges(schema: dict) -> dict[str, list[str]]:
-    """Return {slot_name: [distinct_range, ...]} in schema-declaration order."""
-    result: dict[str, dict[str, None]] = {}  # dict as ordered set
+def _build_slot_to_ranges(
+    schema: dict,
+) -> tuple[dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+    """Return (union_ranges, by_class_ranges) in schema-declaration order.
+
+    union_ranges    — {slot_name: [distinct_range, ...]} across all classes
+    by_class_ranges — {slot_name: {class_name: [range, ...]}} for slots whose
+                      ranges differ across classes
+    """
+    union: dict[str, dict[str, None]] = {}   # dict as ordered set
+    by_class: dict[str, dict[str, list[str]]] = {}
     for class_name, class_data in (schema.get("classes") or {}).items():
         if class_name in _IGNORED_CLASSES:
             continue
         for slot_name, usage in (class_data.get("slot_usage") or {}).items():
-            seen = result.setdefault(slot_name, {})
+            ranges: list[str] = []
             if usage.get("range"):
-                seen[usage["range"]] = None
+                ranges.append(usage["range"])
             for ao in (usage.get("any_of") or []):
                 if ao.get("range"):
-                    seen[ao["range"]] = None
-    return {k: list(v) for k, v in result.items()}
+                    ranges.append(ao["range"])
+            seen = union.setdefault(slot_name, {})
+            for r in ranges:
+                seen[r] = None
+            if ranges:
+                by_class.setdefault(slot_name, {})[class_name] = ranges
+    union_result = {k: list(v) for k, v in union.items()}
+    # Only keep by_class entries where ranges actually differ across classes.
+    by_class_result = {
+        slot: cmap
+        for slot, cmap in by_class.items()
+        if len({tuple(r) for r in cmap.values()}) > 1
+    }
+    return union_result, by_class_result
 
 
 def _build_slot_required_classes(schema: dict) -> dict[str, list[str]]:
@@ -167,7 +188,7 @@ def load_parts(schema_source: dict | str | Path) -> list[ODMPart]:
     enums = schema.get("enums") or {}
 
     slot_to_classes = _build_slot_to_classes(schema)
-    slot_to_ranges = _build_slot_to_ranges(schema)
+    slot_to_ranges, slot_to_ranges_by_class = _build_slot_to_ranges(schema)
     slot_required_classes = _build_slot_required_classes(schema)
     enum_to_slots_classes = _build_enum_to_slots_classes(schema)
     slot_titles, slot_descriptions = _build_slot_labels(schema)
@@ -208,6 +229,7 @@ def load_parts(schema_source: dict | str | Path) -> list[ODMPart]:
             description=slot_descriptions.get(slot_name) or "",
             belongs_to_classes=slot_to_classes.get(slot_name, []),
             slot_ranges=slot_to_ranges.get(slot_name, []),
+            slot_ranges_by_class=slot_to_ranges_by_class.get(slot_name, {}),
             required_by_classes=slot_required_classes.get(slot_name, []),
             minimum_value=slot_minimums.get(slot_name),
             maximum_value=slot_maximums.get(slot_name),

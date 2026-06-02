@@ -14,8 +14,6 @@ Usage
   after a schema update.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib.metadata
 import logging
@@ -68,7 +66,7 @@ mcp = FastMCP(
 def search_odm_parts(
     query: str,
     top_n: int = 10,
-    part_types: Optional[list[str]] = None,
+    part_types: list[str] = [],
     include_score: bool = True,
     include_id: bool = True,
     include_label: bool = True,
@@ -77,6 +75,7 @@ def search_odm_parts(
     include_class_info: bool = True,
     include_enum_info: bool = True,
     include_range: bool = True,
+    include_range_by_class: bool = False,
     include_required: bool = True,
     include_min_max: bool = True,
 ) -> list[dict[str, Any]]:
@@ -91,7 +90,7 @@ def search_odm_parts(
     part_types:
         Restrict search to specific schema types.  Accepted values:
         "class", "slot", "enum", "enum_value".
-        Pass null / omit to search all types.
+        Pass an empty list or omit to search all types.
     include_score:
         Include the cosine similarity score in each result.
     include_id:
@@ -108,9 +107,14 @@ def search_odm_parts(
         For enum_value matches: include the parent enumeration, the slots
         and classes that accept this enumeration value.
     include_range:
-        For slot matches: include the list of allowed range types (e.g. "string",
-        an enumeration name, a class name).  Multiple values appear when the slot
-        accepts more than one type via any_of.
+        For slot matches: include the union of allowed range types across all
+        classes (e.g. "string", an enumeration name, a class name).  Multiple
+        values appear when the slot accepts more than one type via any_of, or
+        when the slot is used with different ranges in different classes.
+    include_range_by_class:
+        For slot matches: include slot_ranges_by_class, a dict mapping each
+        class name to its specific range list for this slot.  Only populated
+        for slots whose ranges differ across classes; omitted otherwise.
     include_required:
         For slot matches: include the list of classes in which this slot is marked
         required (required: true in slot_usage).  An empty list means the slot is
@@ -157,6 +161,9 @@ def search_odm_parts(
 
         if include_range and part.schema_type == "slot":
             item["slot_ranges"] = part.slot_ranges
+
+        if include_range_by_class and part.schema_type == "slot" and part.slot_ranges_by_class:
+            item["slot_ranges_by_class"] = part.slot_ranges_by_class
 
         if include_required and part.schema_type == "slot":
             item["required_by_classes"] = part.required_by_classes
