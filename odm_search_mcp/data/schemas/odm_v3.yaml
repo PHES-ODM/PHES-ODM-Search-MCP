@@ -383,6 +383,9 @@ enums:
         description: A measure or observation made from a substance in the water,
           including wastewater.
         title: Water compartment
+      hum:
+        description: A measure or observation made about a human.
+        title: Human compartment
   anySpecimenSet:
     description: A specimen set that inculdes any specimen.
     title: Any specimen set
@@ -3763,6 +3766,9 @@ enums:
         description: A research sampling strategy in which samples are selected in
           order to perform a viral passage experiment.
         title: Viral passage experiment
+      cali:
+        description: Purpose of calibrating a machine, method, or other.
+        title: Calibration purpose
   rawSeqProcSet:
     description: The category set of valid innput values for the software/library/pipeline
       used to process the raw sequencing data.
@@ -5266,9 +5272,9 @@ enums:
         description: Ocean, natural water body
         title: Ocean, natural water body
       pStat:
-        description: Pumping station - these stations lift sewage or various types
-          of water from lower elevations to higher elevations when gravity systems
-          are not feasible, moving it toward treatment plants.
+        description: Pumping station - these stations transport sewage or various
+          types of water from one place to another, to facilitate its movement toward
+          treatment plants. Sometimes also referred to as "lift stations".
         title: Pumping station
       retPond:
         description: Retention pond
@@ -5385,9 +5391,9 @@ enums:
           inorganic particles (e.g., sand, gravel) before biological treatment.
         title: Grit chamber
       infPump:
-        description: A facility that lifts and transports raw wastewater from collection
-          systems to treatment plants.
-        title: Influent pump station or lift station
+        description: A facility that ransports raw wastewater from collection systems
+          to treatment plants.
+        title: Influent pump station
       primClar:
         description: A large settling tank that removes solids and floating materials
           from wastewater before secondary treatment.
@@ -6857,6 +6863,12 @@ enums:
       yersiniaGrp:
         description: A group of measures/methods related to yersinia bacteria.
         title: Yersinia Group
+      ebolaGrp:
+        description: A group of measures/methods related to Orthoebolaviruses.
+        title: Orthoebolavirus Group
+      hantaGrp:
+        description: A group of measures/methods related to Orthohantaviruses.
+        title: Orthohantavirus Group
   measurements:
     description: The attribute to describe a part type of measures. All measures have
       `partType` = "measure".
@@ -8120,6 +8132,9 @@ enums:
       sTemp:
         description: Temperature that the sample is stored at in Celsius.
         title: Storage temp
+      strainID:
+        description: The strain identifier for a given organism.
+        title: Strain ID
       stercobilin:
         description: Stercobilin is a tetrapyrrolic bile pigment and is one end-product
           of heme catabolism. It is the chemical responsible for the brown color of
@@ -8128,9 +8143,6 @@ enums:
       stoTim:
         description: Length of time that a sample was in storage.
         title: Storage time
-      strainID:
-        description: The strain identifier for a given organism.
-        title: Strain ID
       strepPneu:
         description: Streptococcus pneumoniae
         title: Streptococcus pneumoniae
@@ -8288,6 +8300,78 @@ enums:
       zika:
         description: Zika
         title: Zika
+      andv:
+        description: Andes virus (ANDV) is the most common cause of hantavirus pulmonary
+          syndrome (HPS) in South America. Andes virus is transmitted mainly by the
+          long-tailed pygmy rice rat. Orthohantavirus andesense.
+        title: Andes virus (ANDV) hantavirus
+      ebolaV:
+        description: Orthoebolavirus zairense or Zaire ebolavirus, more commonly known
+          as Ebola virus, is one of six known species within the genus Ebolavirus.
+          Four of the six known ebolaviruses, including EBOV, cause a severe and often
+          fatal hemorrhagic fever in humans and other mammals, known as Ebola virus
+          disease (EVD).
+        title: "Ebola virus,\_Orthoebolavirus zairense"
+      sudanV:
+        description: Sudan virus (species Orthoebolavirus sudanense) causes Sudan
+          virus disease.
+        title: Sudan virus, Orthoebolavirus sudanense
+      taiforestV:
+        description: "Orthoebolavirus taiense (formerly Ta\xEF Forest ebolavirus)\
+          \ is a rare viral species that causes Ta\xEF Forest virus disease in humans.\
+          \ It is one of four orthoebolaviruses known to cause illness in people,\
+          \ with only one confirmed human infection ever recorded."
+        title: "Ta\xEF Forest virus, Orthoebolavirus taiense"
+      bundibugyoV:
+        description: The species Bundibugyo ebolavirus is the taxonomic home of one
+          virus, Bundibugyo virus (BDBV), that forms filamentous virions and is closely
+          related to the Zaire ebolaviruses (EBOV). The virus is one of several that
+          can cause Ebola disease in humans, taking the form of viral hemorrhagic
+          fever.
+        title: Bundibugyo virus, Orthoebolavirus bundibugyoense
+      EVD:
+        description: Ebola, also known as Ebola virus disease (EVD) and Ebola hemorrhagic
+          fever (EHF), is a zoonotic viral hemorrhagic fever in humans and other primates,
+          caused by four of the six known ebolaviruses.
+        title: Ebola Virus Disease (EVD)
+      hfrs:
+        description: 'Hantavirus hemorrhagic fever with renal syndrome (HFRS) is a
+          hemorrhagic fever caused by hantavirus infection. Symptoms usually occur
+          2 weeks after exposure to the hantavirus and come in five distinct clinical
+          stages: febrile (toxic), hypotensive, low urine production (oliguric), high
+          urine production (diuretic), and recovery.'
+        title: Hantavirus hemorrhagic fever with renal syndrome (HFRS)
+      hps:
+        description: Hantavirus pulmonary syndrome (HPS), also called hantavirus cardiopulmonary
+          syndrome (HCPS), is a severe respiratory disease caused by hantavirus infection.
+          The main features of illness are microvascular leakage and acute respiratory
+          distress syndrome. Symptoms occur anywhere from one to eight weeks after
+          exposure to the virus and come in three distinct phases.
+        title: Hantavirus pulmonary syndrome (HPS)
+      snv:
+        description: Sin Nombre virus (SNV) is the most common cause of hantavirus
+          pulmonary syndrome (HPS) in North America. Sin Nombre virus is transmitted
+          mainly by the western deer mouse (Peromyscus sonoriensis).
+        title: "Sin Nombre virus\_(SNV) hantavirus"
+      htnv:
+        description: Hantaan virus (HTNV) is the main cause of hemorrhagic fever with
+          renal syndrome (HFRS) in East Asia. Hantaan virus is transmitted by the
+          striped field mouse (Apodemus agrarius).
+        title: Hantaan virus (HTNV) hantavirus
+      seov:
+        description: Seoul virus (SEOV) is one of the main causes of hemorrhagic fever
+          with renal syndrome (HFRS). Seoul virus is transmitted by the brown rat
+          (Rattus norvegicus) and the black rat (Rattus rattus).
+        title: Seoul virus (SEOV) hantavirus
+      puuv:
+        description: Puumala virus (PUUV) is the main cause of hemorrhagic fever with
+          renal syndrome (HFRS) in Europe and Russia. Puumala virus is transmitted
+          by the bank vole (Clethrionomys glareolus).
+        title: Puumala virus (PUUV) hantavirus
+      dobv:
+        description: Dobrava-Belgrade virus (DOBV) is the main cause of hemorrhagic
+          fever with renal syndrome (HFRS) in southern Europe.
+        title: Dobrava-Belgrade virus (DOBV) hantavirus
   methods:
     description: Procedures or steps for collecting samples or performing measures.
       For example, `methodExtract` is a method that describes the how a sample was
@@ -11309,9 +11393,9 @@ classes:
           with `protocolIDSub` or `stepIDSub` and `relationshipID` the row of `protocolRelationships`
           should say: [protocolIDSubject or stepIDSubject]  [relationshipID] [protocolIDObject
           or stepIDObject]. Ex: stepIDSubject  precedes protocolIDObject.'
-        minimum_value: 1
+        pattern: ^.{0,30}$
         any_of:
-        - range: integer
+        - range: string
         - range: genMissingnessSet
       relationshipID:
         description: Attribute for specifying the relationship between a sample subject
@@ -11443,7 +11527,7 @@ classes:
         title: Organization ID
         pattern: ^.{0,100}$
         any_of:
-        - range: string
+        - range: organizations
         - range: genMissingnessSet
       contactID:
         description: A unique identifier for a given contact person.
@@ -11782,8 +11866,8 @@ classes:
     - reportable
     - organizationID
     - contactID
-    - lastEdited
     - refLink
+    - lastEdited
     - notes
     slot_usage:
       measureRepID:
@@ -12096,6 +12180,18 @@ classes:
         any_of:
         - range: contacts
         - range: genMissingnessSet
+      refLink:
+        description: Link to the reference material for a part. May link to literature
+          on a method, measure, etc.
+        title: Reference link
+        notes:
+        - Link to standard operating procedure for a measure or part. Part reference
+          is a reference to a technical document that describes the part in detail.
+          The reference could be a URL, DOI, or reference to a techincal report.
+        pattern: ^.{0,255}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       lastEdited:
         description: The date the entry was last updated.
         title: Last edited
@@ -12115,18 +12211,6 @@ classes:
         pattern: ^.{0,30}$
         any_of:
         - range: datetime
-        - range: genMissingnessSet
-      refLink:
-        description: Link to the reference material for a part. May link to literature
-          on a method, measure, etc.
-        title: Reference link
-        notes:
-        - Link to standard operating procedure for a measure or part. Part reference
-          is a reference to a technical document that describes the part in detail.
-          The reference could be a URL, DOI, or reference to a techincal report.
-        pattern: ^.{0,255}$
-        any_of:
-        - range: string
         - range: genMissingnessSet
       notes:
         description: A note used to describe details that are not captured in other
@@ -13864,6 +13948,9 @@ classes:
       funderCont:
         description: A unique identifier for a funder.
         title: Funder contact ID
+        notes:
+        - Use Contact ID to populate this field, and the organizations table to describe
+          contact information and other details for the data custodian.
         pattern: ^.{0,30}$
         any_of:
         - range: string
@@ -13871,6 +13958,9 @@ classes:
       custodyCont:
         description: A unique identifier for data custodians.
         title: Custody Contact ID
+        notes:
+        - Use Contact ID to populate this field, and the organizations table to describe
+          contact information and other details for the data custodian.
         pattern: ^.{0,30}$
         any_of:
         - range: string
@@ -14543,7 +14633,6 @@ classes:
         description: A unique identifier for the organization to which the reporter
           is affiliated.
         title: Organization ID
-        required: true
         pattern: ^.{0,100}$
         any_of:
         - range: organizations

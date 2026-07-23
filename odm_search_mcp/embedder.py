@@ -144,25 +144,44 @@ class ODMEmbedder:
         if self.embeddings is None or not self.parts:
             raise RuntimeError("Embeddings not loaded. Call load_or_build() first.")
 
+        pt_set = set(part_types) if part_types else None
+
+        # Exact-match short-circuit: a query that is a literal part_id or label is
+        # a lookup, not a fuzzy search.  Semantic embeddings cluster short codes
+        # (e.g. covN1, covN2) too tightly to rank an exact code first, so surface
+        # any exact matches (case-insensitive) at the top with score 1.0.
+        q_norm = query.strip().casefold()
+        exact_parts = [
+            p for p in self.parts
+            if (pt_set is None or p.schema_type in pt_set)
+            and (p.part_id.casefold() == q_norm or p.label.casefold() == q_norm)
+        ]
+        exact_results = [(1.0, p) for p in exact_parts]
+        exact_ids = {p.part_id for p in exact_parts}
+        if len(exact_results) >= top_n:
+            return exact_results[:top_n]
+
         model = self._get_model()
         query_vec = model.encode([query], show_progress_bar=False)[0].astype(np.float32)
 
-        if part_types:
-            pt_set = set(part_types)
+        if pt_set:
             indices = [i for i, p in enumerate(self.parts) if p.schema_type in pt_set]
             if not indices:
-                return []
+                return exact_results[:top_n]
             idx_arr = np.array(indices)
             sub_matrix = self.embeddings[idx_arr]
             scores = _cosine_similarity(query_vec, sub_matrix)
-            local_top = min(top_n, len(indices))
-            top_local = np.argsort(-scores)[:local_top]
-            return [(float(scores[i]), self.parts[idx_arr[i]]) for i in top_local]
+            order = np.argsort(-scores)
+            semantic = [(float(scores[i]), self.parts[idx_arr[i]]) for i in order]
         else:
             scores = _cosine_similarity(query_vec, self.embeddings)
-            top_k = min(top_n, len(self.parts))
-            top_idx = np.argsort(-scores)[:top_k]
-            return [(float(scores[i]), self.parts[i]) for i in top_idx]
+            order = np.argsort(-scores)
+            semantic = [(float(scores[i]), self.parts[i]) for i in order]
+
+        # Prepend exact matches, drop their duplicates from the semantic list,
+        # then truncate to top_n.
+        merged = exact_results + [(s, p) for s, p in semantic if p.part_id not in exact_ids]
+        return merged[:top_n]
 
     def get_class_slots(self, class_name: str) -> list[dict]:
         """Return all slots for *class_name* with their schema-level details.

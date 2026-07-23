@@ -42,25 +42,13 @@ The MCP server should be written in Python.
 
 ## Files
 
-There are two files that are used for creating the embeddings.
+There is one file that is used for creating the embeddings.
 
 ### odm_search_mcp/data/schemas/odm_v3.yaml
 
 This file is a LinkML schema defining the PHES-ODM (version 3). It includes all
 the classes, slots, an enumerations. These all correspond to different parts
 defined in the parts file.
-
-### odm_search_mcp/data/parts/ODM_parts_v3.0.0.csv
-
-This file is a CSV file defining all parts in the PHES-ODM (version 3). The
-part ID is under the column `partID`, the type is under `partType`, the title
-in `partLabel`, and the description in `partDesc`. Ignore any row where the
-value under the column `status` is equal to `depreciated`.
-
-The `partID` can also be found within the LinkML schema file mentioned above.
-This can provide information on whether the part is a class, slot, or
-enumeration value, as well as provide the class or slot that the part can be
-applied to.
 
 ## Documentation
 

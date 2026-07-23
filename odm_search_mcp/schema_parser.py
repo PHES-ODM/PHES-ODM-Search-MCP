@@ -38,7 +38,7 @@ class ODMPart:
     used_by_classes: list[str] = field(default_factory=list)       # for enum_values
 
     def embed_text(self) -> str:
-        parts = [self.label]
+        parts = [self.part_id, self.label]
         if self.description:
             parts.append(self.description)
         if self.belongs_to_classes:
