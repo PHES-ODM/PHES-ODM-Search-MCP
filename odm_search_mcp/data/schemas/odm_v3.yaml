@@ -11225,7 +11225,7 @@ classes:
         - Populate with a protocol step ID (stepID).
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocolSteps
         - range: genMissingnessSet
       stepVer:
         description: Specifies the version of a given protocol step.
@@ -11369,7 +11369,7 @@ classes:
         required: true
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocols
         - range: genMissingnessSet
       protocolIDObj:
         description: The object of the relationship between one protocol and another
@@ -11382,7 +11382,7 @@ classes:
           or stepIDObject]. Ex: stepIDSubject  precedes protocolIDObject.'
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocols
         - range: genMissingnessSet
       stepIDObj:
         description: The object of the relationship between one protocol step and
@@ -11395,7 +11395,7 @@ classes:
           or stepIDObject]. Ex: stepIDSubject  precedes protocolIDObject.'
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocolSteps
         - range: genMissingnessSet
       relationshipID:
         description: Attribute for specifying the relationship between a sample subject
@@ -11420,7 +11420,7 @@ classes:
           or stepIDObject]. Ex: stepIDSubject  precedes protocolIDObject.'
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocols
         - range: genMissingnessSet
       stepIDSub:
         description: The subject of the relationship between one protocol step and
@@ -11433,7 +11433,7 @@ classes:
           or stepIDObject]. Ex: stepIDSubject  precedes protocolIDObject.'
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocolSteps
         - range: genMissingnessSet
       lastEdited:
         description: The date the entry was last updated.
@@ -11773,7 +11773,7 @@ classes:
         notes:
         - The polygon relationship should be read as "'subject' is 'relationshipID'
           to 'object'".
-        range: string
+        range: polygons
         required: true
         pattern: ^.{0,50}$
       relationshipID:
@@ -11793,7 +11793,7 @@ classes:
         notes:
         - The polygon relationship should be read as "'subject' is 'relationshipID'
           to 'object'".
-        range: string
+        range: polygons
         required: true
         pattern: ^.{0,50}$
       lastEdited:
@@ -13439,7 +13439,7 @@ classes:
         - Populate with protocolID.
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: protocols
         - range: genMissingnessSet
       protocolID:
         description: A unique identifier for a given protocol.
@@ -13862,7 +13862,7 @@ classes:
         title: Parent dataset ID
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: datasets
         - range: genMissingnessSet
       datasetID:
         description: The name of the dataset that stores information for MeasureReport,
@@ -13953,7 +13953,7 @@ classes:
           contact information and other details for the data custodian.
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: contacts
         - range: genMissingnessSet
       custodyCont:
         description: A unique identifier for data custodians.
@@ -13963,7 +13963,7 @@ classes:
           contact information and other details for the data custodian.
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: contacts
         - range: genMissingnessSet
       funderID:
         description: The funding agency of the dataset.
@@ -13973,7 +13973,7 @@ classes:
           to describe contact information and other details for the funding agency.
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: organizations
         - range: genMissingnessSet
       custodyID:
         description: The data custodian of a database.
@@ -13984,7 +13984,7 @@ classes:
         required: true
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: organizations
         - range: genMissingnessSet
       originalFormat:
         description: The original structure or model used to record and store the
@@ -14167,7 +14167,7 @@ classes:
         required: true
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: samples
         - range: genMissingnessSet
       relationshipID:
         description: Attribute for specifying the relationship between a sample subject
@@ -14192,7 +14192,7 @@ classes:
         required: true
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: samples
         - range: genMissingnessSet
       lastEdited:
         description: The date the entry was last updated.
@@ -14395,7 +14395,7 @@ classes:
           or child-sites.
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: sites
         - range: genMissingnessSet
       siteID:
         description: Unique identifier for the location where a sample was taken.
@@ -14522,7 +14522,7 @@ classes:
           authority.`
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: organizations
         - range: genMissingnessSet
       repOrg2:
         description: The secondary, additional or alternative authority for rountine
@@ -14538,7 +14538,7 @@ classes:
           public health department or region where the site is located.'
         pattern: ^.{0,30}$
         any_of:
-        - range: string
+        - range: organizations
         - range: genMissingnessSet
       healthRegion:
         description: A free-text variable for listing the health region for a given
