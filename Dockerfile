@@ -25,7 +25,10 @@ RUN HF_HOME=/model-cache /venv/bin/python -c \
 
 # Generate the embeddings index at build time so the runtime image starts
 # immediately without needing the files to exist in the source tree.
-RUN HF_HOME=/model-cache /venv/bin/python -m odm_search_mcp.server --rebuild
+# ODM_BATCH_SIZE and the single-thread settings keep peak memory low so the
+# build succeeds on constrained hosts (e.g. small EC2 instances) without OOM.
+RUN HF_HOME=/model-cache ODM_BATCH_SIZE=8 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+    /venv/bin/python -m odm_search_mcp.server --rebuild
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM python:3.10-slim AS runtime

@@ -17,6 +17,7 @@ locally and on a public Linux server.
 - [TLS with Let's Encrypt (optional)](#tls-with-lets-encrypt-optional)
 - [Environment variables](#environment-variables)
 - [Maintenance](#maintenance)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -76,6 +77,9 @@ cd PHES-ODM-Search-MCP
 docker compose up --build -d
 docker compose logs mcp        # look for "Server ready — 2185 parts indexed"
 ```
+
+If the build fails with `exit code: 137`, the host ran out of memory during the
+index build — see [Troubleshooting](#troubleshooting).
 
 The server is now reachable at `http://<SERVER-IP>/mcp`. The shipped nginx
 config accepts any hostname, so no editing is needed for IP-based HTTP access.
@@ -152,6 +156,7 @@ sensible defaults):
 | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model name |
 | `ODM_HOST` | `0.0.0.0` | Bind host (set automatically by Docker) |
 | `ODM_PORT` | `8000` | Port the server listens on |
+| `ODM_BATCH_SIZE` | `64` | Parts encoded per pass when building the index. Lower it (e.g. `8`) to cut peak memory on small hosts; only affects rebuild, not the index itself. |
 
 ---
 
@@ -167,3 +172,32 @@ sensible defaults):
 The embeddings index is baked into the image, so rebuilding the image
 re-indexes. To persist a rebuilt index across restarts instead, uncomment the
 `embeddings` volume lines in `docker-compose.yml`.
+
+---
+
+## Troubleshooting
+
+### Build fails with `exit code: 137` at the `--rebuild` step
+
+Exit code 137 is a `SIGKILL` — the Linux kernel's out-of-memory (OOM) killer
+terminated the process. The `--rebuild` step loads PyTorch and the embedding
+model and then encodes every schema part, which briefly needs ~1.5–2 GB of RAM.
+Small hosts (e.g. a `t3.micro` with 1 GB and no swap) run out during this spike.
+
+The `Dockerfile` already lowers the batch size and thread count for this step to
+keep peak memory down. If the build still OOMs, add swap to the host — the
+standard fix for memory-heavy builds on small instances:
+
+```bash
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # persist across reboots
+free -h                                                       # verify swap is listed
+```
+
+Then rebuild. Alternatives: lower `ODM_BATCH_SIZE` further (e.g. `4`) on the
+`--rebuild` line in the `Dockerfile`, use a larger instance for the build, or
+build the image on a bigger machine and push it to a registry — the runtime
+stage does no rebuild and needs far less memory.

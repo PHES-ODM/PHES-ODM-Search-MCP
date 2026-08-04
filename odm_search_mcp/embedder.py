@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
@@ -25,6 +26,14 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_STORE_DIR = Path(__file__).parent.parent / "embeddings"
+
+# Number of parts encoded per forward pass when building the index. Lower this
+# (e.g. ODM_BATCH_SIZE=8) to reduce peak memory on constrained hosts, at the cost
+# of a slower rebuild. Falls back to 64 if the env var is unset or invalid.
+try:
+    DEFAULT_BATCH_SIZE = max(1, int(os.environ.get("ODM_BATCH_SIZE", "64")))
+except ValueError:
+    DEFAULT_BATCH_SIZE = 64
 
 
 def _cosine_similarity(query_vec: np.ndarray, matrix: np.ndarray) -> np.ndarray:
@@ -269,8 +278,8 @@ class ODMEmbedder:
         self.parts = load_parts(self._get_schema())
         texts = [p.embed_text() for p in self.parts]
         model = self._get_model()
-        logger.info("Encoding %d parts…", len(texts))
-        vecs = model.encode(texts, show_progress_bar=True, batch_size=64)
+        logger.info("Encoding %d parts (batch_size=%d)…", len(texts), DEFAULT_BATCH_SIZE)
+        vecs = model.encode(texts, show_progress_bar=True, batch_size=DEFAULT_BATCH_SIZE)
         self.embeddings = vecs.astype(np.float32)
 
     def _save(self) -> None:
