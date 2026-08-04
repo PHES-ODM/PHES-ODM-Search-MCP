@@ -1,12 +1,14 @@
 # PHES-ODM Embedding Search — MCP Server
 
-An MCP (Model Context Protocol) server that lets any MCP-compatible client search PHES-ODM parts (classes, slots, and enumeration values) using natural language queries backed by sentence-transformer embeddings.
+An MCP (Model Context Protocol) server that lets any MCP-compatible client
+search PHES-ODM parts (classes, slots, and enumeration values) using natural
+language queries backed by sentence-transformer embeddings.
 
 ---
 
 ## Contents
 
-```
+```text
 PHES-ODM-Search-MCP/
 ├── odm_search_mcp/
 │   ├── __init__.py
@@ -53,7 +55,8 @@ This installs the package in editable mode along with all its dependencies,
 making `odm_search_mcp` importable from any working directory — which is
 required for the Claude Desktop integration.
 
-The default embedding model is `all-MiniLM-L6-v2` (downloaded automatically by `sentence-transformers` on first use, ~90 MB).
+The default embedding model is `all-MiniLM-L6-v2` (downloaded automatically by
+`sentence-transformers` on first use, ~90 MB).
 
 ### 2. Start the server
 
@@ -61,14 +64,14 @@ The default embedding model is `all-MiniLM-L6-v2` (downloaded automatically by `
 python -m odm_search_mcp.server
 ```
 
-On the **first run** the server parses the schema, encodes all ~2 300 parts, and
+On the **first run** the server parses the schema, encodes all ~2,200 parts, and
 saves the resulting vectors to `embeddings/`.  Subsequent starts load the cached
 vectors and are much faster.
 
 #### CLI options
 
 | Flag | Env var | Default | Description |
-|------|---------|---------|-------------|
+| ------ | --------- | --------- | ------------- |
 | `--schema PATH` | `ODM_SCHEMA` | `odm_search_mcp/data/schemas/odm_v3.yaml` | LinkML schema file |
 | `--store DIR` | `ODM_STORE` | `embeddings/` | Directory for cached embeddings |
 | `--model NAME` | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
@@ -80,25 +83,25 @@ starting the server.  The process exits automatically once the index is
 written to disk, so no Ctrl-C is needed.  Run this whenever you update
 the schema or switch embedding models.
 
-**Example — pre-build the index:**
+##### Example — pre-build the index
 
 ```bash
 python -m odm_search_mcp.server --rebuild
 ```
 
-**Example — use a different model and rebuild the index:**
+##### Example — use a different model and rebuild the index
 
 ```bash
 python -m odm_search_mcp.server --model all-mpnet-base-v2 --rebuild
 ```
 
-**Example — run over streamable HTTP transport:**
+##### Example — run over streamable HTTP transport
 
 ```bash
 python -m odm_search_mcp.server --transport http
 ```
 
-**Example — run over SSE transport:**
+##### Example — run over SSE transport
 
 ```bash
 python -m odm_search_mcp.server --transport sse
@@ -110,7 +113,7 @@ Add an entry to `claude_desktop_config.json` on your local machine. The file
 location depends on the operating system:
 
 | OS | Path |
-|----|------|
+| ---- | ------ |
 | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
 | Linux | `~/.config/Claude/claude_desktop_config.json` |
@@ -183,19 +186,56 @@ Create `.mcp.json` in the project root:
 }
 ```
 
-To get the `python3` path, activate the virtual environment you used for `pip install`
-and run `which python3`.
+To get the `python3` path, activate the virtual environment you used for
+`pip install` and run `which python3`.
 
 ---
 
 ## Tools
+
+All tools are read-only. Every call returns an MCP tool-result object with three
+parts:
+
+- `content` — an array with a single `text` block. On success its `text` is the
+  return value serialized as a JSON **string**; on error it is a plain-text
+  message.
+- `structuredContent` — the same successful return value as parsed JSON
+  (present only on success). When a tool returns an array, it is wrapped
+  under a `result` key: `{"result": [ ... ]}`. When a tool returns an object
+  (e.g. `get_version`), that object is used directly.
+- `isError` — `false` on success, `true` on failure.
+
+Each tool's section below shows the full object. Because the `content` text
+block is just the `structuredContent` re-serialized as a string, the examples
+show the readable `structuredContent` and use a placeholder for the duplicated
+text.
+
+When a call fails — for example an unknown name or an invalid parameter — the
+server returns an **MCP tool error**: `isError` is `true` and the text block
+holds a plain-text message of the form
+`Error calling tool '<tool_name>': <message>`:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error calling tool '<tool_name>': <message>"
+    }
+  ],
+  "isError": true
+}
+```
+
+The `<message>` is the specific reason, shown in the **Errors** notes for each
+tool below.
 
 ### `search_odm_parts`
 
 Search for PHES-ODM parts using a natural language query.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| ----------- | ------ | --------- | ------------- |
 | `query` | string | *(required)* | Natural language description or title of the term to find |
 | `top_n` | integer | `10` | Maximum number of results |
 | `part_types` | string[] | `[]` | Filter by schema type: `"class"`, `"slot"`, `"enum"`, `"enum_value"`. Pass an empty array or omit to search all types. |
@@ -211,58 +251,103 @@ Search for PHES-ODM parts using a natural language query.
 | `include_min_max` | boolean | `true` | For slot matches: include `minimum_value` and `maximum_value` when specified in the schema; `null` when unconstrained |
 | `include_enum_info` | boolean | `true` | For enum_value matches: include the parent enumeration name, the slots that accept it, and the classes those slots belong to |
 
-A JSON array of match objects, ordered by descending similarity score.
-Fields present depend on the `include_*` flags and the `type` of the
+**Returns** a JSON array of match objects, ordered by descending similarity
+score. Fields present depend on the `include_*` flags and the `type` of the
 matched part.
 
 **`slot` match** — includes slot-specific fields when the corresponding
 `include_*` flags are `true`:
 
 ```json
-[
-  {
-    "score": 0.8341,
-    "id": "collDT",
-    "label": "Collection Date and Time",
-    "type": "slot",
-    "description": "The date and time at which the sample was collected.",
-    "belongs_to_classes": ["samples"],
-    "slot_ranges": ["dateTime"],
-    "required_by_classes": ["samples"]
-  }
-]
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": [
+      {
+        "score": 0.8341,
+        "id": "collDT",
+        "label": "Collection Date and Time",
+        "type": "slot",
+        "description": "The date and time at which the sample was collected.",
+        "belongs_to_classes": ["samples"],
+        "slot_ranges": ["dateTime"],
+        "required_by_classes": ["samples"]
+      }
+    ]
+  },
+  "isError": false
+}
 ```
 
 **`enum_value` match** — includes enum-value-specific fields when
 `include_enum_info` is `true`:
 
 ```json
-[
-  {
-    "score": 0.7921,
-    "id": "grab",
-    "label": "Grab",
-    "type": "enum_value",
-    "description": "A sample collected at a single point in time.",
-    "belongs_to_enum": "samplingTypeSet",
-    "used_by_slots": ["sampType"],
-    "used_by_classes": ["samples"]
-  }
-]
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": [
+      {
+        "score": 0.7921,
+        "id": "grab",
+        "label": "Grab",
+        "type": "enum_value",
+        "description": "A sample collected at a single point in time.",
+        "belongs_to_enum": "samplingTypeSet",
+        "used_by_slots": ["sampType"],
+        "used_by_classes": ["samples"]
+      }
+    ]
+  },
+  "isError": false
+}
 ```
 
 **`class` or `enum` match** — only the base fields are present:
 
 ```json
-[
-  {
-    "score": 0.7503,
-    "id": "samples",
-    "label": "Samples",
-    "type": "class",
-    "description": "A table containing wastewater sample collection records."
-  }
-]
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": [
+      {
+        "score": 0.7503,
+        "id": "samples",
+        "label": "Samples",
+        "type": "class",
+        "description": "A table containing wastewater sample collection records."
+      }
+    ]
+  },
+  "isError": false
+}
+```
+
+**Errors.** A non-positive `top_n`, or an unrecognized value in `part_types`,
+returns a tool error, e.g.:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error calling tool 'search_odm_parts': top_n must be a positive integer, got 0."
+    }
+  ],
+  "isError": true
+}
+```
+
+The message for an unrecognized `part_types` value lists the valid ones, e.g.
+
+```text
+Unknown part_types: ['sample']. Valid values: ['class', 'enum', 'enum_value', 'slot'].
 ```
 
 ---
@@ -275,7 +360,7 @@ Return all permissible values for a named enumeration.
 | ----------- | ------ | ------------- | ----------------------------------- |
 | `enum_name` | string | *(required)*  | The enumeration's schema identifier |
 
-A JSON array of value objects, in schema order. Each object has:
+**Returns** a JSON array of value objects, in schema order. Each object has:
 
 | Field         | Description                                        |
 | ------------- | -------------------------------------------------- |
@@ -284,82 +369,143 @@ A JSON array of value objects, in schema order. Each object has:
 | `description` | Prose explanation of the value                     |
 
 ```json
-[
-  {
-    "value": "gm3",
-    "title": "Gram per cubic metre",
-    "description": "Density unit."
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": [
+      {
+        "value": "gm3",
+        "title": "Gram per cubic metre",
+        "description": "Density unit."
+      },
+      {
+        "value": "hUn",
+        "title": "See Header for Unit",
+        "description": "Indicates that unit info is in the column header."
+      }
+    ]
   },
-  {
-    "value": "hUn",
-    "title": "See Header for Unit",
-    "description": "Indicates that unit info is in the column header."
-  }
-]
+  "isError": false
+}
 ```
 
-An error is returned if `enum_name` is not found in the schema.
+**Errors.** If `enum_name` is not found in the schema, the call returns a tool
+error:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error calling tool 'get_enum_values': Enumeration 'foo' not found in schema."
+    }
+  ],
+  "isError": true
+}
+```
 
 ---
 
 ### `get_class_slots`
 
-Return all slots belonging to a named class, with their full schema-level details.
+Return all slots belonging to a named class, with their full schema-level
+details.
 
 | Parameter    | Type   | Default      | Description                        |
 | ------------ | ------ | ------------ | ---------------------------------- |
 | `class_name` | string | *(required)* | Schema identifier for the class,   |
 |              |        |              | e.g. `"wideNames"`, `"Sample"`     |
 
-A JSON array of slot objects, ordered as they appear in the class definition.
-Each object has:
+**Returns** a JSON array of slot objects, ordered as they appear in the class
+definition. Each object has:
 
-| Field         | Description                                              |
-| ------------- | -------------------------------------------------------- |
-| `part_id`     | Slot identifier (partID)                                 |
-| `title`       | Human-readable name from `slot_usage`                    |
-| `description` | Prose description of the slot in this class context      |
-| `range`       | List of allowed types; multiple entries when `any_of`    |
-|               | is used (e.g. `["string", "genMissingnessSet"]`)         |
-| `pattern`     | Regex pattern constraint, or empty string if none        |
-| `identifier`  | `true` if this slot is the primary key for this class    |
-| `required`    | `true` if this slot is required in this class            |
+| Field           | Description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| `part_id`       | Slot identifier (partID)                                      |
+| `title`         | Human-readable name from `slot_usage`                         |
+| `description`   | Prose description of the slot in this class context           |
+| `range`         | List of allowed types; multiple entries when `any_of` is used |
+|                 | (e.g. `["string", "genMissingnessSet"]`)                      |
+| `pattern`       | Regex pattern constraint, or empty string if none             |
+| `identifier`    | `true` if this slot is the primary key for this class         |
+| `required`      | `true` if this slot is required in this class                 |
+| `minimum_value` | Numeric lower bound, or `null` if unconstrained               |
+| `maximum_value` | Numeric upper bound, or `null` if unconstrained               |
 
 ```json
-[
-  {
-    "part_id": "wideName",
-    "title": "Wide Name",
-    "description": "Unique identifier for wide table only.",
-    "range": ["string"],
-    "pattern": "^.{0,30}$",
-    "identifier": true,
-    "required": true
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": [
+      {
+        "part_id": "wideName",
+        "title": "Wide Name",
+        "description": "Unique identifier for wide table only.",
+        "range": ["string"],
+        "pattern": "^.{0,30}$",
+        "identifier": true,
+        "required": true,
+        "minimum_value": null,
+        "maximum_value": null
+      },
+      {
+        "part_id": "descr",
+        "title": "Description",
+        "description": "A detailed description of a measure, method, or attribute.",
+        "range": ["string", "genMissingnessSet"],
+        "pattern": "^.{0,1000}$",
+        "identifier": false,
+        "required": true,
+        "minimum_value": null,
+        "maximum_value": null
+      }
+    ]
   },
-  {
-    "part_id": "descr",
-    "title": "Description",
-    "description": "A detailed description of a measure, method, or attribute.",
-    "range": ["string", "genMissingnessSet"],
-    "pattern": "^.{0,1000}$",
-    "identifier": false,
-    "required": true
-  }
-]
+  "isError": false
+}
 ```
 
-An error is returned if `class_name` is not found in the schema.
+**Errors.** If `class_name` is not found in the schema — or names a part that
+is not a usable ODM class — the call returns a tool error:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error calling tool 'get_class_slots': Class 'foo' not found in schema."
+    }
+  ],
+  "isError": true
+}
+```
+
+A part that exists but is not a usable ODM class yields the message
+`Class 'foo' is not a valid ODM class.` in the same structure.
 
 ---
 
 ### `list_part_types`
 
-Returns the list of all distinct `schema_type` values present in the loaded index.  Useful to discover valid values for the `part_types` filter.
+Returns the list of all distinct `schema_type` values present in the loaded
+index.  Useful to discover valid values for the `part_types` filter.
 
-**Output example**
+#### Output example
 
 ```json
-["class", "enum", "enum_value", "slot"]
+{
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "result": ["class", "enum", "enum_value", "slot"]
+  },
+  "isError": false
+}
 ```
 
 ---
@@ -370,19 +516,28 @@ Returns version information for the running server instance.
 
 | Field | Description |
 | --- | --- |
-| `server_version` | Installed package version (e.g. `"0.1.0"`) |
+| `server_version` | Installed package version (e.g. `"0.2.0"`) |
 | `schema_name` | `name` field from the loaded ODM schema (e.g. `"ODMv3"`) |
 | `model` | Sentence-transformer model used for embeddings |
 | `parts_indexed` | Number of ODM parts in the search index |
 
 ```json
 {
-  "server_version": "0.1.0",
-  "schema_name": "ODMv3",
-  "model": "all-MiniLM-L6-v2",
-  "parts_indexed": 2322
+  "content": [
+    { "type": "text", "text": "<structuredContent, serialized as a JSON string>" }
+  ],
+  "structuredContent": {
+    "server_version": "0.2.0",
+    "schema_name": "ODMv3",
+    "model": "all-MiniLM-L6-v2",
+    "parts_indexed": 2185
+  },
+  "isError": false
 }
 ```
+
+Because `get_version` returns an object rather than an array, its
+`structuredContent` is the object directly — there is no `result` wrapper.
 
 ---
 
@@ -435,7 +590,7 @@ Returns version information for the running server instance.
 ## Schema types
 
 | `schema_type` | Meaning |
-|---------------|---------|
+| --------------- | --------- |
 | `class` | A data table / entity class in the LinkML schema (e.g. `samples`, `measurements`) |
 | `slot` | A field / column defined in the schema (e.g. `collDT`, `value`) |
 | `enum` | A named enumeration (controlled vocabulary set) |
@@ -448,7 +603,8 @@ enumeration, and permissible value present in the schema is indexed.
 
 ## Changing the embedding model
 
-Any model accepted by `sentence-transformers` can be used.  After changing the model, rebuild the index:
+Any model accepted by `sentence-transformers` can be used.  After changing the
+model, rebuild the index:
 
 ```bash
 python -m odm_search_mcp.server --model paraphrase-multilingual-MiniLM-L12-v2 --rebuild
@@ -457,7 +613,7 @@ python -m odm_search_mcp.server --model paraphrase-multilingual-MiniLM-L12-v2 --
 Popular alternatives:
 
 | Model | Size | Notes |
-|-------|------|-------|
+| ------- | ------ | ------- |
 | `all-MiniLM-L6-v2` | ~90 MB | Default — fast, good quality |
 | `all-mpnet-base-v2` | ~420 MB | Higher quality, slower |
 | `paraphrase-multilingual-MiniLM-L12-v2` | ~470 MB | Multilingual support |

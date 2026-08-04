@@ -1,458 +1,169 @@
 # Running PHES-ODM Search MCP in Docker
 
-This guide covers building and running the server as a Docker container,
-and deploying it publicly on an AWS EC2 instance running Debian Linux.
+This guide covers building and running the server as a Docker container, both
+locally and on a public Linux server.
 
-Running as a Docker container has not yet been tested. See
-[SERVER.md](SERVER.md) for deploying the Search MCP on a Debian Linux instance
-without Docker, which has been successfully tested.
+> **Note:** The Docker setup has not yet been tested end-to-end. For a
+> tested, non-Docker deployment on Debian Linux, see [SERVER.md](SERVER.md).
 
 ---
 
 ## Contents
 
-- [Running PHES-ODM Search MCP in Docker](#running-phes-odm-search-mcp-in-docker)
-  - [Contents](#contents)
-  - [Quick start (local)](#quick-start-local)
-  - [Image overview](#image-overview)
-  - [Deploying on AWS EC2 (Debian Linux)](#deploying-on-aws-ec2-debian-linux)
-    - [1. Launch an EC2 instance](#1-launch-an-ec2-instance)
-    - [2. Connect and prepare the instance](#2-connect-and-prepare-the-instance)
-    - [3. Install Docker](#3-install-docker)
-    - [4. Copy the project to the server](#4-copy-the-project-to-the-server)
-    - [5. Build the Docker image](#5-build-the-docker-image)
-    - [6. Configure nginx](#6-configure-nginx)
-    - [7. Start the services](#7-start-the-services)
-    - [8. Open the firewall (AWS Security Group)](#8-open-the-firewall-aws-security-group)
-    - [9. Verify the server is reachable](#9-verify-the-server-is-reachable)
-    - [10. Connect an MCP client](#10-connect-an-mcp-client)
-      - [Claude Desktop](#claude-desktop)
-      - [Claude Code CLI](#claude-code-cli)
-    - [11. Optional — TLS with Let's Encrypt](#11-optional--tls-with-lets-encrypt)
-  - [Environment variables](#environment-variables)
-  - [Maintenance](#maintenance)
-    - [View logs](#view-logs)
-    - [Restart the server](#restart-the-server)
-    - [Rebuild the embeddings index](#rebuild-the-embeddings-index)
-    - [Update to a new version](#update-to-a-new-version)
+- [Quick start (local)](#quick-start-local)
+- [What's in the image](#whats-in-the-image)
+- [Deploy on a public server](#deploy-on-a-public-server)
+- [Connect an MCP client](#connect-an-mcp-client)
+- [TLS with Let's Encrypt (optional)](#tls-with-lets-encrypt-optional)
+- [Environment variables](#environment-variables)
+- [Maintenance](#maintenance)
 
 ---
 
 ## Quick start (local)
 
-Build and run everything locally using Docker Compose:
+Build and run everything with Docker Compose:
 
 ```bash
-docker compose up --build
+docker compose up --build      # add -d to run in the background
 ```
 
-The default transport is streamable HTTP; the endpoint is at
-`http://localhost/mcp`.
-To use the SSE transport instead, set `ODM_TRANSPORT=sse` (see
-[Environment variables](#environment-variables)) — the endpoint becomes
-`http://localhost/sse`.
-
-To stop:
-
-```bash
-docker compose down
-```
+The endpoint is `http://localhost/mcp` (streamable HTTP, the default). To use
+the SSE transport instead, set `ODM_TRANSPORT=sse` and the endpoint becomes
+`http://localhost/sse`. To stop: `docker compose down`.
 
 ---
 
-## Image overview
+## What's in the image
 
-The `Dockerfile` uses a two-stage build:
+The `Dockerfile` is a two-stage build. The **builder** stage installs
+dependencies, downloads the `all-MiniLM-L6-v2` model (~90 MB), and generates
+the embeddings index — all baked into the image so the container starts
+instantly with no runtime download or index build. The **runtime** stage is a
+slim final image. If you change `odm_v3.yaml`, rebuild to re-index.
 
-| Stage | Purpose |
-| --------- | ------- |
-| **builder** | Installs Python dependencies, pre-downloads the `all-MiniLM-L6-v2` model (~90 MB), and generates the embeddings index — all baked into the image so the container starts immediately without a network fetch or index build at runtime. |
-| **runtime** | Slim final image containing only what is needed to run the server. |
-
-The embeddings index (`embeddings/`) is generated during the image build
-(~4 MB) and does **not** need to exist in the source tree beforehand.
-If you update `odm_v3.yaml`, rebuild the image to re-index.
-
-`docker-compose.yml` defines three services:
-
-| Service | Description |
-|---------|-------------|
-| `mcp` | The FastMCP HTTP server, listening on port 8000 inside the Docker network. |
-| `nginx` | Reverse proxy that exposes port 80 (and optionally 443) to the outside world. |
-| `certbot` | One-shot container used to obtain a Let's Encrypt TLS certificate (disabled by default via Docker Compose profiles). |
+`docker-compose.yml` runs two services: **`mcp`** (the FastMCP server on port
+8000, internal to the Docker network) and **`nginx`** (a reverse proxy exposing
+ports 80/443). A third, `certbot`, is used only for
+[TLS](#tls-with-lets-encrypt-optional) and stays off by default.
 
 ---
 
-## Deploying on AWS EC2 (Debian Linux)
+## Deploy on a public server
 
-### 1. Launch an EC2 instance
+**Prerequisites:** any Debian/Ubuntu host (e.g. an AWS EC2 instance) with at
+least **1 GB RAM** and **12 GB disk**, and inbound **ports 80 and 443** open in
+your firewall / AWS Security Group.
 
-1. Open the **EC2 console** and choose **Launch instance**.
-2. Select **Debian 12 (Bookworm)** from the AWS Marketplace or Community AMIs.
-3. Choose an instance type. The server requires at least **1 GB RAM** — `t3.micro` (1 GB) is sufficient for light usage; `t3.small` (2 GB) is more comfortable.
-4. Under **Storage**, allocate at least **12 GB** (OS + Docker images + PyTorch stack).
-5. Under **Network settings**, create or select a Security Group. You will open ports in [step 8](#8-open-the-firewall-aws-security-group).
-6. Generate or select an SSH key pair and launch the instance.
-7. Note the instance's **Public IPv4 address** (or associate an Elastic IP for a stable address).
+**1. Install Docker** (Docker's official convenience script):
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER && newgrp docker
+```
+
+**2. Get the code:**
+
+```bash
+git clone https://github.com/PHES-ODM/PHES-ODM-Search-MCP.git
+cd PHES-ODM-Search-MCP
+```
+
+**3. Build and start** (the first build downloads PyTorch and the model,
+~5–10 min):
+
+```bash
+docker compose up --build -d
+docker compose logs mcp        # look for "Server ready — 2185 parts indexed"
+```
+
+The server is now reachable at `http://<SERVER-IP>/mcp`. The shipped nginx
+config accepts any hostname, so no editing is needed for IP-based HTTP access.
 
 ---
 
-### 2. Connect and prepare the instance
+## Connect an MCP client
 
-SSH into the instance (replace `<PUBLIC-IP>` with your instance's address):
+Use `http://<SERVER-IP>/mcp` (or `/sse` if you set `ODM_TRANSPORT=sse`). Once
+[TLS](#tls-with-lets-encrypt-optional) is configured, use
+`https://<YOUR-DOMAIN>/mcp`.
 
-```bash
-ssh -i ~/.ssh/your-key.pem admin@<PUBLIC-IP>
-```
-
-> **Note:** The default user on AWS Debian AMIs is `admin`, not `ec2-user` or `ubuntu`.
-
-Update the system:
+**Claude Code CLI:**
 
 ```bash
-sudo apt update && sudo apt upgrade -y
+claude mcp add phes-odm-search --transport http http://<SERVER-IP>/mcp
 ```
 
----
-
-### 3. Install Docker
-
-Install Docker Engine and Docker Compose on Debian 12:
-
-```bash
-# Add Docker's official GPG key and repository
-sudo apt install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg \
-    | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-```
-
-Add your user to the `docker` group so you can run Docker commands without `sudo`:
-
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-Verify:
-
-```bash
-docker --version
-docker compose version
-```
-
----
-
-### 4. Copy the project to the server
-
-**Option A — git clone (if the repo is hosted)**
-
-```bash
-git clone <repo-url> ~/PHES-ODM-Search-MCP
-cd ~/PHES-ODM-Search-MCP
-```
-
-**Option B — rsync from your local machine**
-
-Run this on your **local** machine:
-
-```bash
-rsync -av --exclude '__pycache__' --exclude '.git' \
-    /path/to/PHES-ODM-Search-MCP/ \
-    admin@<PUBLIC-IP>:~/PHES-ODM-Search-MCP/
-```
-
-Then on the server:
-
-```bash
-cd ~/PHES-ODM-Search-MCP
-```
-
----
-
-### 5. Build the Docker image
-
-The first build downloads the sentence-transformers model and compiles PyTorch dependencies. This can take **5–10 minutes** depending on network speed.
-
-```bash
-docker compose build
-```
-
----
-
-### 6. Configure nginx
-
-Open `nginx.conf` and replace `YOUR_DOMAIN` with your server's public IP address or DNS name in the `server_name` directive of the HTTP block:
-
-```bash
-nano nginx.conf
-```
-
-For example, if your Elastic IP is `52.10.20.30`:
-
-```nginx
-server {
-    listen 80;
-    server_name 52.10.20.30;
-    ...
-}
-```
-
-If you have a domain name, use that instead (required for TLS — see [step 11](#11-optional--tls-with-lets-encrypt)).
-
-> **Note:** The default `server_name _;` (wildcard) works too if you only have one site on the server and do not plan to use TLS.
-
----
-
-### 7. Start the services
-
-```bash
-docker compose up -d
-```
-
-Check that both containers started cleanly:
-
-```bash
-docker compose ps
-docker compose logs mcp
-```
-
-You should see a line similar to:
-
-```
-INFO:__main__:Server ready — 2322 parts indexed, model=all-MiniLM-L6-v2
-```
-
----
-
-### 8. Open the firewall (AWS Security Group)
-
-In the **EC2 console**, navigate to **Security Groups** → select the group attached to your instance → **Edit inbound rules** → add:
-
-| Type | Protocol | Port range | Source |
-|------|----------|------------|--------|
-| HTTP | TCP | 80 | 0.0.0.0/0 (or restrict to specific IPs) |
-| HTTPS | TCP | 443 | 0.0.0.0/0 (if using TLS) |
-
-Save the rules.
-
----
-
-### 9. Verify the server is reachable
-
-From your local machine:
-
-```bash
-curl http://<PUBLIC-IP>/mcp
-```
-
-You should see the server respond to the HTTP request.
-
----
-
-### 10. Connect an MCP client
-
-The endpoint depends on the transport configured in your container:
-
-| Transport       | URL                              |
-| --------------- | -------------------------------- |
-| Streamable HTTP | `http://<PUBLIC-IP>/mcp`         |
-| SSE             | `http://<PUBLIC-IP>/sse`         |
-
-#### Claude Desktop
-
-Edit `claude_desktop_config.json` on your local machine:
-
-| OS | Path |
-| -- | ---- |
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
-| Linux | `~/.config/Claude/claude_desktop_config.json` |
-
-**Streamable HTTP:**
+**Claude Desktop** — edit `claude_desktop_config.json` (macOS:
+`~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`, Linux:
+`~/.config/Claude/`):
 
 ```json
 {
   "mcpServers": {
-    "phes-odm-search": {
-      "url": "http://<PUBLIC-IP>/mcp"
-    }
+    "phes-odm-search": { "url": "http://<SERVER-IP>/mcp" }
   }
 }
 ```
 
-**SSE:**
-
-```json
-{
-  "mcpServers": {
-    "phes-odm-search": {
-      "url": "http://<PUBLIC-IP>/sse",
-      "transport": "sse"
-    }
-  }
-}
-```
-
-Restart Claude Desktop.
-
-#### Claude Code CLI
-
-**Streamable HTTP:**
-
-```bash
-claude mcp add phes-odm-search --transport http http://<PUBLIC-IP>/mcp
-```
-
-**SSE:**
-
-```bash
-claude mcp add phes-odm-search --transport sse http://<PUBLIC-IP>/sse
-```
+For SSE, use the `/sse` URL and add `"transport": "sse"`. Restart the client
+after editing.
 
 ---
 
-### 11. Optional — TLS with Let's Encrypt
+## TLS with Let's Encrypt (optional)
 
-HTTPS is strongly recommended for a public server. You need a **domain name** with an A record pointing to the instance's public IP before proceeding.
+HTTPS is strongly recommended for a public server. You need a **domain name**
+with an A record pointing to the server first.
 
-**Step 1 — Run Certbot to obtain a certificate**
+1. **Obtain a certificate** (replace the domain and email):
 
-```bash
-docker compose run --rm certbot certonly \
-    --webroot \
-    --webroot-path /var/www/certbot \
-    -d YOUR_DOMAIN \
-    --email your@email.com \
-    --agree-tos \
-    --no-eff-email
-```
-
-Certbot stores the certificate files in the `certbot-conf` Docker volume, which is also mounted in the nginx container.
-
-**Step 2 — Enable the HTTPS server block in nginx.conf**
-
-Edit `nginx.conf`:
-
-```bash
-nano nginx.conf
-```
-
-1. In the HTTP `server` block, replace the `proxy_pass` location block with a redirect:
-   ```nginx
-   location / {
-       return 301 https://$host$request_uri;
-   }
+   ```bash
+   docker compose run --rm certbot certonly --webroot \
+       --webroot-path /var/www/certbot \
+       -d YOUR_DOMAIN --email your@email.com --agree-tos --no-eff-email
    ```
 
-2. Uncomment the entire `# HTTPS` server block at the bottom of the file, replacing `YOUR_DOMAIN` with your actual domain name.
+2. **Enable HTTPS in `nginx.conf`:** uncomment the `# HTTPS` server block at the
+   bottom (replacing `YOUR_DOMAIN`), and change the HTTP block's `location /` to
+   `return 301 https://$host$request_uri;`.
 
-**Step 3 — Reload nginx**
+3. **Reload nginx:** `docker compose exec nginx nginx -s reload`
 
-```bash
-docker compose exec nginx nginx -s reload
-```
+4. **Auto-renew** — certificates expire after 90 days. Add a cron job
+   (`crontab -e`):
 
-Verify with:
-
-```bash
-curl https://YOUR_DOMAIN/mcp
-```
-
-**Step 4 — Update client URLs**
-
-Update your MCP client configuration to use `https://YOUR_DOMAIN/mcp`.
-
-**Automatic renewal**
-
-Certbot certificates expire after 90 days. Add a cron job on the EC2 instance to renew automatically:
-
-```bash
-crontab -e
-```
-
-Add:
-
-```cron
-0 3 * * * cd ~/PHES-ODM-Search-MCP && \
-    docker compose run --rm --profile certbot certbot renew --quiet && \
-    docker compose exec nginx nginx -s reload
-```
+   ```cron
+   0 3 * * * cd ~/PHES-ODM-Search-MCP && docker compose run --rm certbot renew --quiet && docker compose exec nginx nginx -s reload
+   ```
 
 ---
 
 ## Environment variables
 
-The MCP server reads configuration from these environment variables (all have sensible defaults):
+Override any of these in `docker-compose.yml` under `mcp.environment` (all have
+sensible defaults):
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `ODM_TRANSPORT` | `http` | MCP transport: `http` (streamable HTTP) or `sse` |
-| `ODM_SCHEMA` | `odm_search_mcp/data/schemas/odm_v3.yaml` | Path to the LinkML schema file |
-| `ODM_STORE` | `embeddings` | Directory for the cached embeddings index |
+| --- | --- | --- |
+| `ODM_TRANSPORT` | `http` | `http` (streamable HTTP) or `sse` |
+| `ODM_SCHEMA` | `odm_search_mcp/data/schemas/odm_v3.yaml` | LinkML schema file |
+| `ODM_STORE` | `embeddings` | Cached embeddings index directory |
 | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model name |
-| `ODM_HOST` | `0.0.0.0` | Host the HTTP server binds to (set automatically by Docker) |
-| `ODM_PORT` | `8000` | Port the HTTP server listens on |
-
-Override any variable in `docker-compose.yml` under the `mcp.environment` key.
+| `ODM_HOST` | `0.0.0.0` | Bind host (set automatically by Docker) |
+| `ODM_PORT` | `8000` | Port the server listens on |
 
 ---
 
 ## Maintenance
 
-### View logs
+| Task | Command |
+| --- | --- |
+| View live logs | `docker compose logs -f mcp` |
+| Restart the server | `docker compose restart mcp` |
+| Update to a new version | `git pull && docker compose up --build -d` |
+| Rebuild the embeddings index | `docker compose build --no-cache mcp && docker compose up -d` |
 
-```bash
-# Live log stream
-docker compose logs -f mcp
-
-# Last 100 lines
-docker compose logs --tail=100 mcp
-```
-
-### Restart the server
-
-```bash
-docker compose restart mcp
-```
-
-### Rebuild the embeddings index
-
-The embeddings are baked into the image. To rebuild after updating the schema:
-
-```bash
-# Rebuild the image (re-indexes during build)
-docker compose build --no-cache mcp
-docker compose up -d
-```
-
-Alternatively, to rebuild the index in the running container without a full
-image rebuild (updates are lost when the container restarts unless you mount
-a volume):
-
-```bash
-docker compose exec mcp \
-    python -m odm_search_mcp.server --rebuild
-```
-
-The process exits automatically once the index is written to disk.
-
-To persist a rebuilt index across container restarts, uncomment the `embeddings` volume lines in `docker-compose.yml`.
-
-### Update to a new version
-
-```bash
-git pull                        # or rsync new files
-docker compose build mcp
-docker compose up -d
-```
+The embeddings index is baked into the image, so rebuilding the image
+re-indexes. To persist a rebuilt index across restarts instead, uncomment the
+`embeddings` volume lines in `docker-compose.yml`.

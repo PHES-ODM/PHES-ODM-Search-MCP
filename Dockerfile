@@ -11,13 +11,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create a virtual environment to keep the runtime image clean.
 RUN python -m venv /venv
-COPY requirements.txt .
+
+# Install the package and its dependencies from pyproject.toml.
+COPY pyproject.toml .
+COPY odm_search_mcp/ odm_search_mcp/
 RUN /venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /venv/bin/pip install --no-cache-dir -r requirements.txt
+    /venv/bin/pip install --no-cache-dir .
 
 # Pre-download the embedding model (all-MiniLM-L6-v2, ~90 MB) into a
 # predictable cache directory so it ships inside the image.
-COPY odm_search_mcp/ odm_search_mcp/
 RUN HF_HOME=/model-cache /venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 

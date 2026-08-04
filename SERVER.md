@@ -17,33 +17,36 @@ Differences between the two HTTP-based transports are called out inline.
 
 ## Contents
 
-- [Deploying the PHES-ODM Search MCP Server on Debian Linux](#deploying-the-phes-odm-search-mcp-server-on-debian-linux)
-  - [Contents](#contents)
-  - [Prerequisites](#prerequisites)
-  - [1. Create a dedicated user](#1-create-a-dedicated-user)
-  - [2. Install Python](#2-install-python)
-  - [3. Deploy the application](#3-deploy-the-application)
-  - [4. Install Python dependencies](#4-install-python-dependencies)
-  - [5. Pre-build the embeddings index](#5-pre-build-the-embeddings-index)
-  - [6. Create a systemd service](#6-create-a-systemd-service)
-  - [7. Install and configure nginx](#7-install-and-configure-nginx)
-  - [8. Open the firewall](#8-open-the-firewall)
-  - [9. TLS with Let's Encrypt](#9-tls-with-lets-encrypt)
-  - [10. Connect an MCP client](#10-connect-an-mcp-client)
-    - [Claude Desktop](#claude-desktop)
-    - [Claude Code CLI](#claude-code-cli)
-  - [Maintenance](#maintenance)
-    - [Rebuilding the embeddings index](#rebuilding-the-embeddings-index)
+- [Prerequisites](#prerequisites)
+- [1. Create a dedicated user](#1-create-a-dedicated-user)
+- [2. Install Python](#2-install-python)
+- [3. Deploy the application](#3-deploy-the-application)
+- [4. Install Python dependencies](#4-install-python-dependencies)
+- [5. Pre-build the embeddings index](#5-pre-build-the-embeddings-index)
+- [6. Create a systemd service](#6-create-a-systemd-service)
+- [7. Install and configure nginx](#7-install-and-configure-nginx)
+- [8. Open the firewall](#8-open-the-firewall)
+- [9. TLS with Let's Encrypt](#9-tls-with-lets-encrypt)
+- [10. Connect an MCP client](#10-connect-an-mcp-client)
+  - [Claude Desktop](#claude-desktop)
+  - [Claude Code CLI](#claude-code-cli)
+- [Maintenance](#maintenance)
+  - [Rebuilding the embeddings index](#rebuilding-the-embeddings-index)
 
 ---
 
 ## Prerequisites
 
-- A Debian 12 or Ubuntu 22.04 host with at least **1 GB RAM** and **2 GB free disk space** (the embedding model is ~90 MB; the full sentence-transformers stack with PyTorch is larger).
-- If using AWS EC2, a Debian Linux instance should have at least 12 GB disk space.
+- A Debian 12 or Ubuntu 22.04 host with at least **1 GB RAM** and **2 GB free
+  disk space** (the embedding model is ~90 MB; the full sentence-transformers
+  stack with PyTorch is larger).
+- If using AWS EC2, a Debian Linux instance should have at least 12 GB disk
+  space.
 - A non-root user with `sudo` access.
-- The host's **public IP address** or a DNS name pointing to it (needed for nginx and the client configuration).
-- Ports **80** (and **443** if using TLS) reachable from clients — open these in your AWS Security Group or equivalent firewall.
+- The host's **public IP address** or a DNS name pointing to it (needed for
+  nginx and the client configuration).
+- Ports **80** (and **443** if using TLS) reachable from clients — open these
+  in your AWS Security Group or equivalent firewall.
 
 ---
 
@@ -78,9 +81,10 @@ python3 --version   # should print 3.10+
 
 ## 3. Deploy the application
 
-Copy the project directory to the server and place it under the service account's home directory.
+Copy the project directory to the server and place it under the service
+account's home directory.
 
-**Option A — git clone (if the repo is hosted)**
+### Option A — git clone (if the repo is hosted)
 
 With HTTPS:
 
@@ -94,7 +98,7 @@ Or with SSH:
 sudo -u odm git clone git@github.com:PHES-ODM/PHES-ODM-Search-MCP.git /home/odm/PHES-ODM-Search-MCP
 ```
 
-**Option B — copy from a local machine**
+### Option B — copy from a local machine
 
 ```bash
 # Run on your local machine
@@ -117,18 +121,20 @@ sudo -u odm bash -c "
     python3 -m venv /home/odm/venv
     mkdir -p /home/odm/tmp
     TMPDIR=/home/odm/tmp /home/odm/venv/bin/pip install \
-        -r /home/odm/PHES-ODM-Search-MCP/requirements.txt
+        -e /home/odm/PHES-ODM-Search-MCP
 "
 ```
 
-The `sentence-transformers` package pulls in PyTorch (CPU build) and several other libraries; expect the download to take a few minutes.
+Installing with `-e` reads the dependencies from `pyproject.toml`. The
+`sentence-transformers` package pulls in PyTorch (CPU build) and several other
+libraries; expect the download to take a few minutes.
 
 ---
 
 ## 5. Pre-build the embeddings index
 
 The first time the server starts it downloads the embedding model (~90 MB)
-and encodes ~2 300 parts.  Doing this once now avoids a slow first startup
+and encodes ~2,200 parts.  Doing this once now avoids a slow first startup
 under systemd:
 
 ```bash
@@ -138,8 +144,8 @@ sudo -u odm bash -c "cd /home/odm/PHES-ODM-Search-MCP && \
 
 The process exits automatically once you see:
 
-```
-INFO:odm_search_mcp.server:Rebuild complete — 2169 parts indexed, model=all-MiniLM-L6-v2
+```text
+INFO:__main__:Rebuild complete — 2185 parts indexed, model=all-MiniLM-L6-v2
 ```
 
 The encoded vectors are saved to `/home/odm/PHES-ODM-Search-MCP/embeddings/`
@@ -184,7 +190,8 @@ sudo systemctl enable --now PHES-ODM-Search-MCP
 sudo systemctl status PHES-ODM-Search-MCP
 ```
 
-The server listens on **127.0.0.1:8000** by default.  It is not exposed directly to the network; nginx handles all external traffic.
+The server listens on **127.0.0.1:8000** by default.  It is not exposed directly
+to the network; nginx handles all external traffic.
 
 ---
 
@@ -196,7 +203,8 @@ Install nginx:
 sudo apt install -y nginx
 ```
 
-Create a virtual-host configuration.  Replace `your.domain.example` with your server's public IP address or DNS name:
+Create a virtual-host configuration.  Replace `your.domain.example` with your
+server's public IP address or DNS name:
 
 ```bash
 sudo tee /etc/nginx/sites-available/PHES-ODM-Search-MCP > /dev/null <<'EOF'
@@ -239,7 +247,8 @@ sudo ufw allow 443/tcp   # if you plan to add TLS later
 sudo ufw reload
 ```
 
-If the host is an **AWS EC2** instance, update the instance's Security Group to allow inbound traffic on port 80 (and 443) from the relevant source IP ranges.
+If the host is an **AWS EC2** instance, update the instance's Security Group to
+allow inbound traffic on port 80 (and 443) from the relevant source IP ranges.
 
 ---
 
@@ -254,7 +263,8 @@ Install Certbot:
 sudo apt install -y certbot python3-certbot-nginx
 ```
 
-Obtain and install a certificate (requires a valid DNS name pointing to the server):
+Obtain and install a certificate (requires a valid DNS name pointing to the
+server):
 
 ```bash
 sudo certbot --nginx -d your.domain.example
@@ -317,7 +327,7 @@ claude mcp add phes-odm-search --transport http http://your.domain.example/mcp
 ## Maintenance
 
 | Task | Command |
-|------|---------|
+| ------ | --------- |
 | View live logs | `sudo journalctl -u PHES-ODM-Search-MCP -f` |
 | Restart the server | `sudo systemctl restart PHES-ODM-Search-MCP` |
 | Rebuild the embeddings index | See below |
