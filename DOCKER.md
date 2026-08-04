@@ -53,8 +53,9 @@ ports 80/443). A third, `certbot`, is used only for
 ## Deploy on a public server
 
 **Prerequisites:** any Debian/Ubuntu host (e.g. an AWS EC2 instance) with at
-least **1 GB RAM** and **12 GB disk**, and inbound **ports 80 and 443** open in
-your firewall / AWS Security Group.
+least **1 GB RAM** and a **20–30 GB disk** (a from-scratch build needs transient
+space for PyTorch and layer extraction — the default 8 GB volume is too small),
+and inbound **ports 80 and 443** open in your firewall / AWS Security Group.
 
 **1. Install Docker** (Docker's official convenience script):
 
@@ -202,20 +203,40 @@ Then rebuild. Alternatives: lower `ODM_BATCH_SIZE` further (e.g. `4`) on the
 build the image on a bigger machine and push it to a registry — the runtime
 stage does no rebuild and needs far less memory.
 
-### `pip install` fails with `[Errno 28] No space left on device`
+### Build fails with `no space left on device` (`[Errno 28]`)
 
-The disk filled during install. The main cause is PyTorch: the default `torch`
-wheel bundles several GB of CUDA/nvidia libraries that a CPU-only server never
-uses. The `Dockerfile` avoids this by installing the CPU-only build first
-(`--index-url https://download.pytorch.org/whl/cpu`), which is much smaller.
+The host disk filled up during the build. This can surface at **any stage**, not
+just one — common ones include:
 
-If you still run out of space, reclaim it and check free disk on the host:
+- **`pip install`** — downloading and unpacking dependencies. The biggest is
+  PyTorch: the default `torch` wheel bundles several GB of CUDA/nvidia libraries
+  that a CPU-only server never uses. The `Dockerfile` avoids this by installing
+  the CPU-only build first (`--index-url https://download.pytorch.org/whl/cpu`).
+- **`--rebuild`** — writing the embeddings index and `.pyc` caches.
+- **Exporting the image** — Docker/containerd extracting the finished layers
+  (e.g. writing under `/var/lib/containerd/.../torch/...`). This needs room for
+  the base image, the builder layers, and the extracted runtime image at once.
+
+The cause is the same regardless of stage — a full host disk. Reclaim space and
+check free disk on the host:
 
 ```bash
-docker system prune -af --volumes   # remove unused images, layers, build cache
-df -h /                             # check free space on the root volume
+df -h /                             # confirm the root volume is near 100%
+docker system df                    # how much Docker/containerd is using
+docker system prune -af --volumes   # remove unused images, layers, containers
+docker buildx prune -af             # BuildKit build cache (often several GB)
 ```
 
 If the root volume is simply too small, grow it — on AWS, expand the EBS volume
-in the console, then `sudo growpart /dev/xvda 1 && sudo resize2fs /dev/xvda1`
-(device names vary). Budget at least **12 GB** free for a clean build.
+in the console, then resize the partition and filesystem (device names vary;
+check `lsblk`):
+
+```bash
+sudo growpart /dev/xvda 1
+sudo resize2fs /dev/xvda1
+df -h /                             # verify the new size
+```
+
+A from-scratch build of this image (PyTorch + model + index) needs well more
+than the default 8 GB Debian root volume for transient build and extraction
+space — budget a **20–30 GB** volume for a reliable clean build.
