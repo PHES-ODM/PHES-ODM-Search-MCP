@@ -15,7 +15,12 @@ RUN python -m venv /venv
 # Install the package and its dependencies from pyproject.toml.
 COPY pyproject.toml .
 COPY odm_search_mcp/ odm_search_mcp/
+# Install the CPU-only build of PyTorch first. The default torch wheel bundles
+# several GB of CUDA/nvidia libraries that are useless on a CPU-only server and
+# can exhaust the disk during install ("No space left on device"). Pre-installing
+# the CPU build satisfies the transitive torch requirement without them.
 RUN /venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /venv/bin/pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
     /venv/bin/pip install --no-cache-dir .
 
 # Pre-download the embedding model (all-MiniLM-L6-v2, ~90 MB) into a

@@ -201,3 +201,21 @@ Then rebuild. Alternatives: lower `ODM_BATCH_SIZE` further (e.g. `4`) on the
 `--rebuild` line in the `Dockerfile`, use a larger instance for the build, or
 build the image on a bigger machine and push it to a registry — the runtime
 stage does no rebuild and needs far less memory.
+
+### `pip install` fails with `[Errno 28] No space left on device`
+
+The disk filled during install. The main cause is PyTorch: the default `torch`
+wheel bundles several GB of CUDA/nvidia libraries that a CPU-only server never
+uses. The `Dockerfile` avoids this by installing the CPU-only build first
+(`--index-url https://download.pytorch.org/whl/cpu`), which is much smaller.
+
+If you still run out of space, reclaim it and check free disk on the host:
+
+```bash
+docker system prune -af --volumes   # remove unused images, layers, build cache
+df -h /                             # check free space on the root volume
+```
+
+If the root volume is simply too small, grow it — on AWS, expand the EBS volume
+in the console, then `sudo growpart /dev/xvda 1 && sudo resize2fs /dev/xvda1`
+(device names vary). Budget at least **12 GB** free for a clean build.
