@@ -80,7 +80,9 @@ docker compose logs mcp        # look for "Server ready — 2185 parts indexed"
 ```
 
 If the build fails with `exit code: 137`, the host ran out of memory during the
-index build — see [Troubleshooting](#troubleshooting).
+index build — see [Troubleshooting](#troubleshooting). If it fails with `no space
+left on device`, the host ran out of disk — also see
+[Troubleshooting](#troubleshooting).
 
 The server is now reachable at `http://<SERVER-IP>/mcp`. The shipped nginx
 config accepts any hostname, so no editing is needed for IP-based HTTP access.
@@ -203,10 +205,13 @@ Then rebuild. Alternatives: lower `ODM_BATCH_SIZE` further (e.g. `4`) on the
 build the image on a bigger machine and push it to a registry — the runtime
 stage does no rebuild and needs far less memory.
 
-### Build fails with `no space left on device` (`[Errno 28]`)
+### Build fails with `no space left on device`
 
-The host disk filled up during the build. This can surface at **any stage**, not
-just one — common ones include:
+The host disk filled up during the build. The error text varies by stage — it
+may appear as `[Errno 28] No space left on device` from pip, a `write ...: no
+space left on device` from the image export, or a similar message — but they all
+mean the same thing. It can surface at **any stage**, not just one — common ones
+include:
 
 - **`pip install`** — downloading and unpacking dependencies. The biggest is
   PyTorch: the default `torch` wheel bundles several GB of CUDA/nvidia libraries
