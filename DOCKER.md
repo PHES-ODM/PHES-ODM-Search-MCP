@@ -53,7 +53,7 @@ ports 80/443). A third, `certbot`, is used only for
 ## Deploy on a public server
 
 **Prerequisites:** any Debian/Ubuntu host (e.g. an AWS EC2 instance) with at
-least **1 GB RAM** and a **20–30 GB disk** (a from-scratch build needs transient
+least **2 GB RAM** and a **20–30 GB disk** (a from-scratch build needs transient
 space for PyTorch and layer extraction — the default 8 GB volume is too small),
 and inbound **ports 80 and 443** open in your firewall / AWS Security Group.
 
