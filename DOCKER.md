@@ -3,21 +3,22 @@
 This guide covers building and running the server as a Docker container, both
 locally and on a public Linux server.
 
-> **Note:** The Docker setup has not yet been tested end-to-end. For a
-> tested, non-Docker deployment on Debian Linux, see [SERVER.md](SERVER.md).
-
 ---
 
 ## Contents
 
-- [Quick start (local)](#quick-start-local)
-- [What's in the image](#whats-in-the-image)
-- [Deploy on a public server](#deploy-on-a-public-server)
-- [Connect an MCP client](#connect-an-mcp-client)
-- [TLS with Let's Encrypt (optional)](#tls-with-lets-encrypt-optional)
-- [Environment variables](#environment-variables)
-- [Maintenance](#maintenance)
-- [Troubleshooting](#troubleshooting)
+- [Running PHES-ODM Search MCP in Docker](#running-phes-odm-search-mcp-in-docker)
+  - [Contents](#contents)
+  - [Quick start (local)](#quick-start-local)
+  - [What's in the image](#whats-in-the-image)
+  - [Deploy on a public server](#deploy-on-a-public-server)
+  - [Connect an MCP client](#connect-an-mcp-client)
+  - [TLS with Let's Encrypt (optional)](#tls-with-lets-encrypt-optional)
+  - [Environment variables](#environment-variables)
+  - [Maintenance](#maintenance)
+  - [Troubleshooting](#troubleshooting)
+    - [Build fails with `exit code: 137` at the `--rebuild` step](#build-fails-with-exit-code-137-at-the---rebuild-step)
+    - [Build fails with `no space left on device`](#build-fails-with-no-space-left-on-device)
 
 ---
 
