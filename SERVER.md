@@ -149,7 +149,7 @@ sudo -u odm bash -c "cd /home/odm/PHES-ODM-Search-MCP && \
 The process exits automatically once you see:
 
 ```text
-INFO:__main__:Rebuild complete — 2185 parts indexed, model=all-MiniLM-L6-v2
+INFO:__main__:Rebuild complete — 2189 parts indexed, model=all-MiniLM-L6-v2
 ```
 
 The encoded vectors are saved to `/home/odm/PHES-ODM-Search-MCP/embeddings/`
