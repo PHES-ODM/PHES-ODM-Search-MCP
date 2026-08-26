@@ -15222,9 +15222,11 @@ classes:
           should allow any person who generates environment surveillance data to know
           how to identify how to record their data elements in the ODM. partReference
           can be used to further describe a part.
-        range: string
         required: true
         pattern: ^.{0,1000}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       source:
         description: The database or table sourced for the wide name.
         title: Wide name source
@@ -15427,9 +15429,11 @@ classes:
       addressID:
         description: A unique identifier for an address.
         title: Address ID
-        range: addresses
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: addresses
+        - range: genMissingnessSet
       orgType:
         description: Specifies the type or purpose of a given organization.
         title: Organization Type
@@ -15539,9 +15543,11 @@ classes:
         notes:
         - Types of quality flag vary on context; please see the qulaityFlagSet to
           be confirm.
-        range: qualityIndicators
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: qualityIndicators
+        - range: genMissingnessSet
       severity:
         description: An indicator of the severity or seriousness of a quality flag.
         title: Severity indicator
@@ -15612,9 +15618,11 @@ classes:
         title: Language ID
         notes:
         - Follow the ISO639-3 codes for now.
-        range: languages
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: languages
+        - range: genMissingnessSet
       partID:
         description: The unique identify of any entity within the dictionary.
         title: Part identifier
@@ -15727,27 +15735,33 @@ classes:
         title: Language family
         notes:
         - Part of the metedata for a languageID.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       langName:
         description: Specifies the name of the language in roman alphabet characters
           for translation and language tracking purposes.
         title: Language name
         notes:
         - Part of the metedata for a languageID.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       natName:
         description: The native name of the language, i.e. what the language is called
           by its speakers.
         title: Native Name
         notes:
         - Part of the metedata for a languageID.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       iso6391:
         description: The first part of the ISO 639 series of international standards
           for language codes. Part 1 covers the registration of two-letter codes.
@@ -15756,9 +15770,11 @@ classes:
         title: ISO639-1
         notes:
         - Part of the metedata for a languageID.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       iso6392T:
         description: A set of international standards that lists short codes for language
           names. These ISO639-2 are the three-letter codes defined in part two (ISO
@@ -15767,9 +15783,11 @@ classes:
         title: ISO639-2T
         notes:
         - Part of the metedata for a languageID.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       firstReleased:
         description: The version in which a part was first released
         title: First released version
@@ -16248,9 +16266,11 @@ classes:
         title: Protocol ID container
         notes:
         - Protocol ID Container in popuated by a protocolID (partID = protocolID)
-        range: protocols
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: protocols
+        - range: genMissingnessSet
       protocolIDObj:
         description: The object of the relationship between one protocol and another
           protocol or step, within a given protocol ID container.
@@ -16284,9 +16304,11 @@ classes:
         notes:
         - 'Together with `sampleIDSubject` and `sampleRelID`, a row of the `sampleRelationships`
           should say: [sampleIDSubject] is a [sampleID] of [sampleIDObject]'
-        range: relSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: relSet
+        - range: genMissingnessSet
       protocolIDSub:
         description: The subject of the relationship between one protocol and another
           protocol or step, within a given protocol ID container.
@@ -16415,9 +16437,11 @@ classes:
       siteID:
         description: Unique identifier for the location where a sample was taken.
         title: Site ID
-        range: sites
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: sites
+        - range: genMissingnessSet
       purpose:
         description: The reason the measure or sample was taken.
         title: Purpose
@@ -16430,9 +16454,11 @@ classes:
       saMaterial:
         description: Type of sample.
         title: Sample material
-        range: sampleMatSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: sampleMatSet
+        - range: genMissingnessSet
       datasetID:
         description: The name of the dataset that stores information for MeasureReport,
           SampleReport and other reporting tables.
@@ -16463,25 +16489,31 @@ classes:
       collType:
         description: The type of collection.
         title: Sample collection type
-        range: collectSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: collectSet
+        - range: genMissingnessSet
       collPer:
         description: Collection period. The time period over which the sample was
           collected, in hours. Alternatively, use collectionStart and collectionEnd.
         title: Collection period
         notes:
         - 'Examples: 1 hour, 6 hours, 24 hours'
-        range: float
         required: true
         minimum_value: 1
+        any_of:
+        - range: float
+        - range: genMissingnessSet
       collNum:
         description: The number of subsamples that were combined to create the sample.
           Use NA for continuous, proportional or passive sampling.
         title: Collection number
-        range: integer
         required: true
         minimum_value: 1
+        any_of:
+        - range: integer
+        - range: genMissingnessSet
       pooled:
         description: Is this a pooled sample, and therefore composed of multiple child
           samples obtained at different sites
@@ -16494,9 +16526,11 @@ classes:
         description: For grab samples this is the date, time and timezone the sample
           was taken.
         title: Collection date time
-        range: datetime
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: datetime
+        - range: genMissingnessSet
       collDTStart:
         description: For integrated time averaged samples this is the date, time and
           timezone the sample was started being taken.
@@ -16755,9 +16789,11 @@ classes:
         title: Sample ID
         notes:
         - Suggestion:siteID-date-index.
-        range: samples
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: samples
+        - range: genMissingnessSet
       purpose:
         description: The reason the measure or sample was taken.
         title: Purpose
@@ -16825,9 +16861,11 @@ classes:
       aDateEnd:
         description: Date the measurement or analysis was completed.
         title: Analysis date end
-        range: datetime
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: datetime
+        - range: genMissingnessSet
       epiWeekStart:
         description: Start date of a given epi week. Noted that not all epi weeks
           use the same start dates, despite being a standard, so including the start
@@ -16889,9 +16927,11 @@ classes:
         title: Specimen
         notes:
         - 'Specimens include: site, sample, person and population.'
-        range: specimens
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: specimens
+        - range: genMissingnessSet
       fraction:
         description: Fraction of the sample that is analyzed.
         title: Fraction analyzed
@@ -16932,9 +16972,11 @@ classes:
         notes:
         - An measurement is recorded from a specimen (i.e. a site, sample, person
           or population). Measures are organized into groups and classes (sub-groups).
-        range: measurements
         required: true
         pattern: ^.{0,100}$
+        any_of:
+        - range: measurements
+        - range: genMissingnessSet
       value:
         description: Value of a measure, observation or attribute.
         title: Value
@@ -16950,18 +16992,22 @@ classes:
         - Different units that are used to describe measurement values. Units are
           combined into UnitSetIDs. Please requests new units by creating an issue
           in the ODM repository.
-        range: units
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: units
+        - range: genMissingnessSet
       aggregation:
         description: Statistical measures used to report a measure. Each aggregation
           has a corresponding value.
         title: Aggregation
         notes:
         - The default aggregation is `single`, which corresponds to a single measurement.
-        range: aggregations
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: aggregations
+        - range: genMissingnessSet
       valTreat:
         description: A field which specifies what kinds of data treatments or the
           nature of the measurement value.
@@ -17258,23 +17304,29 @@ classes:
         notes:
         - The domain ID that corresponds to a given part. Mostly applicable for measures,
           methods, units, and aggregations.
-        range: domains
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: domains
+        - range: genMissingnessSet
       specimenSet:
         description: An idenfication of a set of specimens that can be applied for
           a measure or method.
         title: Specimen Set Header
-        range: specimenSets
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: specimenSets
+        - range: genMissingnessSet
       compartmentSet:
         description: An idenfication of a set of compartments that can be applied
           for a measure or method.
         title: Compartment Set Header
-        range: compartmentSets
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: compartmentSets
+        - range: genMissingnessSet
       group:
         description: Unique identifier for a group of measures. Mostly applicable
           for measures, methods, units, and aggregations.
@@ -17284,9 +17336,11 @@ classes:
           the SARS-CoV-2 group, there are measure classes tht include RNA alleles
           (N1, N2, E, etc.), mutations, (E484K0), an entire sequence, viral proteins,
           etc. Currently groups are used for measures only.
-        range: groups
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: groups
+        - range: genMissingnessSet
       class:
         description: A unique identifier for a class, which is akin to a sub-group;
           it's a way of grouping parts within a given group. A group can have one
@@ -17296,9 +17350,11 @@ classes:
         - Currently, class is only used for biologics. For example, SARS-CoV-2 is
           a group of measures with the following classes of allele, variant, mutation,
           sequence, and protein.
-        range: classes
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: classes
+        - range: genMissingnessSet
       nomenclature:
         description: A classification system to report the measure class. Only applicable
           to variants, mutations, and diseases.
@@ -17359,9 +17415,11 @@ classes:
       aggregationSet:
         description: The aggregation set for a unit.
         title: Aggregation set
-        range: aggregationSets
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: aggregationSets
+        - range: genMissingnessSet
       qualityIndSet:
         description: The quality set that corresponds to a given part. Only applicable
           for samples and measures.
@@ -18408,9 +18466,11 @@ classes:
         notes:
         - A set is a group of units, attributes, categories, specimens, or compartments
           that can be used for a measure, method or attribute.
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       setType:
         description: The type of set. i.e. quality set, aggregation set, unit set
         title: Set type
@@ -18452,10 +18512,12 @@ classes:
         description: The numeric value that corresponds to a given value in a set,
           defined in the sets table.
         title: Enumeration for set values
-        range: integer
         required: true
         minimum_value: 0
         maximum_value: 100
+        any_of:
+        - range: integer
+        - range: genMissingnessSet
       status:
         description: Whether the part is still active and can be used in the most
           current ODM version. Values are 'active' or 'inactive'.
@@ -18571,21 +18633,27 @@ classes:
       geoType:
         description: Type of geography that is represented by the polygon.
         title: Type of geography
-        range: geoTypeSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: geoTypeSet
+        - range: genMissingnessSet
       geoEPSG:
         description: The unique EPSG code specifying a given geospatial area.
         title: European Petroleum Survey Group Coordinates
-        range: float
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: float
+        - range: genMissingnessSet
       geoWKT:
         description: Well-known text of the polygon
         title: Well-known text
-        range: string
         required: true
         pattern: ^.{0,}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       fileLocation:
         description: The location of the file containing the geometry of the polygon.
         title: File location of polygon
@@ -18725,9 +18793,11 @@ classes:
         - Specify the dataset's license name or provide a description of the license.
           Individual measures may possess their own licenses, which take precedence
           over the overall database license.
-        range: licSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: licSet
+        - range: genMissingnessSet
       descr:
         description: A detailed description of a measure, method, or attribute.
         title: Description
@@ -18800,9 +18870,11 @@ classes:
         notes:
         - Use Organization ID to populate this field, and the organizations table
           to describe contact information and other details for the data custodian.
-        range: organizations
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: organizations
+        - range: genMissingnessSet
       originalFormat:
         description: The original structure or model used to record and store the
           data. This helps indicate if data have been transformed or mapped into the
@@ -18868,9 +18940,11 @@ classes:
       addL1:
         description: Line 1 (the street name, number and direction) for a given address.
         title: Address Line 1
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       addL2:
         description: Line 2 (the unit number) for a given address.
         title: Address Line 2
@@ -18882,16 +18956,20 @@ classes:
         description: The city where a site or organization is located; part of the
           address.
         title: City
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       stateProvReg:
         description: The state, province, or region where a site or organization is
           located; part of the address.
         title: State, Province, or Region
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: geoRefMissingnessSet
       pCode:
         description: The zip code or postal code for a given address, specifying a
           specifc geographic area.
@@ -18904,9 +18982,11 @@ classes:
         description: The country where a site or organization is located; part of
           the address.
         title: Country
-        range: string
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: string
+        - range: geoRefMissingnessSet
       lastEdited:
         description: The date the entry was last updated.
         title: Last edited
@@ -18969,9 +19049,11 @@ classes:
         - 'Use `sampleID` for this field. Together with `sampleIDSub` and `relationshipID`
           the row of the `sampleRelationships` should say: [sampleIDSubject] is a[relationshipID]
           of [sampleIDObject]'
-        range: samples
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: samples
+        - range: genMissingnessSet
       relationshipID:
         description: Attribute for specifying the relationship between a sample subject
           and object.
@@ -18979,9 +19061,11 @@ classes:
         notes:
         - 'Together with `sampleIDSubject` and `sampleRelID`, a row of the `sampleRelationships`
           should say: [sampleIDSubject] is a [sampleID] of [sampleIDObject]'
-        range: relSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: relSet
+        - range: genMissingnessSet
       sampleIDObject:
         description: Populated by `sampleID` - this specifies the object of a sample
           relationship.
@@ -18990,9 +19074,11 @@ classes:
         - 'Use `sampleID` for this field. Together with `sampleIDSub` and `relationshipID`
           the row of the `sampleRelationships` should say: [sampleIDSubject] is a[relationshipID]
           of [sampleIDObject]'
-        range: samples
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: samples
+        - range: genMissingnessSet
       lastEdited:
         description: The date the entry was last updated.
         title: Last edited
@@ -19063,9 +19149,11 @@ classes:
       model:
         description: Model number or version of the instrument.
         title: Model
-        range: string
         required: true
         pattern: ^.{0,100}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       manufacturer:
         description: Manufacturer of an instrument.
         title: Manufacturer
@@ -19101,9 +19189,11 @@ classes:
       insType:
         description: Type of instrument used to perform the measurement.
         title: Instrument Type
-        range: insTypeSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: insTypeSet
+        - range: genMissingnessSet
       insTypeOth:
         description: Description of the instrument in case it is not listed in instrumentType.
         title: Describe other instrument type, if applicable
@@ -19222,9 +19312,11 @@ classes:
       siteType:
         description: Type of site or institution where sample was taken.
         title: Site Type
-        range: siteTypeSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: siteTypeSet
+        - range: genMissingnessSet
       sampleShed:
         description: A geographic area, physical space, or structure. A sample is
           taken from a sampleshed for a representative measurement of a substance(s).
@@ -19232,9 +19324,11 @@ classes:
         notes:
         - 'Examples: Airplane, Long-term care home, Neighbourhood, University campus,
           Municipality'
-        range: shedSet
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: shedSet
+        - range: genMissingnessSet
       siteLevel:
         description: Specifies the level of aggregation that occurs at the site -
           essentially, what size and type of region is represented by the base sewershed.
@@ -19264,9 +19358,11 @@ classes:
       contactID:
         description: A unique identifier for a given contact person.
         title: Contact ID
-        range: contacts
         required: true
         pattern: ^.{0,30}$
+        any_of:
+        - range: contacts
+        - range: genMissingnessSet
       name:
         description: Name of a domain, specimen, group, class, attribute, unit, nomeclature
           or other entity.
@@ -19437,9 +19533,11 @@ classes:
       email:
         description: Contact e-mail address, for the lab.
         title: Contact email
-        range: string
         required: true
         pattern: ^.{0,100}$
+        any_of:
+        - range: string
+        - range: genMissingnessSet
       coPhone:
         description: Contact phone number, for the lab.
         title: Contact phone
