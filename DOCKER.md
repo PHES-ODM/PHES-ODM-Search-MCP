@@ -13,7 +13,7 @@ locally and on a public Linux server.
   - [What's in the image](#whats-in-the-image)
   - [Deploy on a public server](#deploy-on-a-public-server)
   - [Connect an MCP client](#connect-an-mcp-client)
-  - [TLS with Let's Encrypt (optional)](#tls-with-lets-encrypt-optional)
+  - [Putting a reverse proxy in front](#putting-a-reverse-proxy-in-front)
   - [Environment variables](#environment-variables)
   - [Maintenance](#maintenance)
   - [Troubleshooting](#troubleshooting)
@@ -30,9 +30,9 @@ Build and run everything with Docker Compose:
 docker compose up --build      # add -d to run in the background
 ```
 
-The endpoint is `http://localhost/mcp` (streamable HTTP, the default). To use
-the SSE transport instead, set `ODM_TRANSPORT=sse` and the endpoint becomes
-`http://localhost/sse`. To stop: `docker compose down`.
+The endpoint is `http://localhost:3840/mcp` (streamable HTTP, the default). To
+use the SSE transport instead, set `ODM_TRANSPORT=sse` and the endpoint becomes
+`http://localhost:3840/sse`. To stop: `docker compose down`.
 
 ---
 
@@ -44,10 +44,10 @@ the embeddings index — all baked into the image so the container starts
 instantly with no runtime download or index build. The **runtime** stage is a
 slim final image. If you change `odm_v3.yaml`, rebuild to re-index.
 
-`docker-compose.yml` runs two services: **`mcp`** (the FastMCP server on port
-3840, internal to the Docker network) and **`nginx`** (a reverse proxy exposing
-ports 80/443). A third, `certbot`, is used only for
-[TLS](#tls-with-lets-encrypt-optional) and stays off by default.
+`docker-compose.yml` runs a single service, **`mcp`** — the FastMCP server,
+published on port 3840 of the host. Nothing else is needed to serve MCP clients
+over the network; see [Putting a reverse proxy in
+front](#putting-a-reverse-proxy-in-front) if you want TLS or a custom hostname.
 
 ---
 
@@ -56,7 +56,7 @@ ports 80/443). A third, `certbot`, is used only for
 **Prerequisites:** any Debian/Ubuntu host (e.g. an AWS EC2 instance) with at
 least **2 GB RAM** and a **20–30 GB disk** (a from-scratch build needs transient
 space for PyTorch and layer extraction — the default 8 GB volume is too small),
-and inbound **ports 80 and 443** open in your firewall / AWS Security Group.
+and inbound **port 3840** open in your firewall / AWS Security Group.
 
 **1. Install Docker** (Docker's official convenience script):
 
@@ -85,21 +85,21 @@ index build — see [Troubleshooting](#troubleshooting). If it fails with `no sp
 left on device`, the host ran out of disk — also see
 [Troubleshooting](#troubleshooting).
 
-The server is now reachable at `http://<SERVER-IP>/mcp`. The shipped nginx
-config accepts any hostname, so no editing is needed for IP-based HTTP access.
+The server is now reachable at `http://<SERVER-IP>:3840/mcp`.
 
 ---
 
 ## Connect an MCP client
 
-Use `http://<SERVER-IP>/mcp` (or `/sse` if you set `ODM_TRANSPORT=sse`). Once
-[TLS](#tls-with-lets-encrypt-optional) is configured, use
-`https://<YOUR-DOMAIN>/mcp`.
+Use `http://<SERVER-IP>:3840/mcp` (or `:3840/sse` if you set
+`ODM_TRANSPORT=sse`). If you terminate TLS with a [reverse
+proxy](#putting-a-reverse-proxy-in-front), use `https://<YOUR-DOMAIN>/mcp`
+instead.
 
 **Claude Code CLI:**
 
 ```bash
-claude mcp add phes-odm-search --transport http http://<SERVER-IP>/mcp
+claude mcp add phes-odm-search --transport http http://<SERVER-IP>:3840/mcp
 ```
 
 **Claude Desktop** — edit `claude_desktop_config.json` (macOS:
@@ -109,7 +109,7 @@ claude mcp add phes-odm-search --transport http http://<SERVER-IP>/mcp
 ```json
 {
   "mcpServers": {
-    "phes-odm-search": { "url": "http://<SERVER-IP>/mcp" }
+    "phes-odm-search": { "url": "http://<SERVER-IP>:3840/mcp" }
   }
 }
 ```
@@ -119,31 +119,27 @@ after editing.
 
 ---
 
-## TLS with Let's Encrypt (optional)
+## Putting a reverse proxy in front
 
-HTTPS is strongly recommended for a public server. You need a **domain name**
-with an A record pointing to the server first.
+The container speaks plain HTTP on port 3840. That is fine for a private network
+or a trusted VPC, but for a server on the public internet you should put a
+reverse proxy in front of it to terminate **TLS** — and to serve the endpoint on
+a normal port and hostname (`https://your.domain.example/mcp`) instead of
+`:3840`.
 
-1. **Obtain a certificate** (replace the domain and email):
+The repository ships an nginx virtual host for exactly this, `nginx.conf`. It
+proxies port 80 to `127.0.0.1:3840`, which is where the container publishes, so
+it works against this Compose stack as well as against a non-Docker install.
+[SERVER.md](SERVER.md) walks through installing it and obtaining a Let's Encrypt
+certificate with `sudo certbot --nginx` (steps 7 and 9) — that procedure applies
+unchanged here; you just skip its Python and systemd steps, since Compose is
+already running the server.
 
-   ```bash
-   docker compose run --rm certbot certonly --webroot \
-       --webroot-path /var/www/certbot \
-       -d YOUR_DOMAIN --email your@email.com --agree-tos --no-eff-email
-   ```
-
-2. **Enable HTTPS in `nginx.conf`:** uncomment the `# HTTPS` server block at the
-   bottom (replacing `YOUR_DOMAIN`), and change the HTTP block's `location /` to
-   `return 301 https://$host$request_uri;`.
-
-3. **Reload nginx:** `docker compose exec nginx nginx -s reload`
-
-4. **Auto-renew** — certificates expire after 90 days. Add a cron job
-   (`crontab -e`):
-
-   ```cron
-   0 3 * * * cd ~/PHES-ODM-Search-MCP && docker compose run --rm certbot renew --quiet && docker compose exec nginx nginx -s reload
-   ```
+If you use a different proxy (Caddy, Traefik, an AWS Application Load Balancer),
+point it at port 3840 the same way. In every case, once the proxy is the only
+public entry point, close 3840 in your firewall / Security Group and bind it to
+localhost only by changing the `ports` entry in `docker-compose.yml` to
+`"127.0.0.1:3840:3840"`.
 
 ---
 

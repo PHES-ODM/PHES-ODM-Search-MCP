@@ -207,27 +207,24 @@ Install nginx:
 sudo apt install -y nginx
 ```
 
-Create a virtual-host configuration.  Replace `your.domain.example` with your
-server's public IP address or DNS name:
+Install the virtual-host configuration shipped with the repository
+(`nginx.conf`), which proxies port 80 to the server on `127.0.0.1:3840`:
 
 ```bash
-sudo tee /etc/nginx/sites-available/PHES-ODM-Search-MCP > /dev/null <<'EOF'
-server {
-    listen 80;
-    server_name your.domain.example;
-
-    location / {
-        proxy_pass         http://127.0.0.1:3840;
-        proxy_http_version 1.1;
-
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-    }
-}
-EOF
+sudo cp /home/odm/PHES-ODM-Search-MCP/nginx.conf \
+        /etc/nginx/sites-available/PHES-ODM-Search-MCP
 ```
+
+Then edit the copy and replace `your.domain.example` in the `server_name`
+directive with your server's public IP address or DNS name:
+
+```bash
+sudo nano /etc/nginx/sites-available/PHES-ODM-Search-MCP
+```
+
+If you are using the **SSE** transport, also uncomment the `proxy_buffering off`
+and `proxy_read_timeout` lines in that file — SSE streams responses, and nginx
+buffers them by default.
 
 Enable the site, disable the default site that ships with nginx, and reload:
 

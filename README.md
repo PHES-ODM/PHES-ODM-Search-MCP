@@ -22,7 +22,7 @@ PHES-ODM-Search-MCP/
 │   └── TASK.md            # Original project specification
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker Compose service configuration
-├── nginx.conf             # nginx reverse proxy configuration
+├── nginx.conf             # nginx reverse proxy configuration (see SERVER.md)
 ├── pyproject.toml         # Package build configuration and dependencies
 ├── README.md
 ├── DOCKER.md              # Deployment guide (Docker + AWS EC2)
@@ -38,7 +38,7 @@ Embeddings are stored under `embeddings/` (created automatically on first run).
 | Guide                           | Description                                                                                       |
 |---------------------------------|---------------------------------------------------------------------------------------------------|
 | [This Document](#setup)         | The Setup section below explains how to use the skill locally with Claude Desktop or Claude Code  |
-| [DOCKER.md](DOCKER.md)          | Run the server as a Docker container; deploy to AWS EC2 with nginx and Let's Encrypt TLS          |
+| [DOCKER.md](DOCKER.md)          | Run the server as a Docker container; deploy to AWS EC2                                           |
 | [SERVER.md](SERVER.md)          | Deploy directly on Debian Linux with nginx and systemd (no Docker)                                |
 
 ---
