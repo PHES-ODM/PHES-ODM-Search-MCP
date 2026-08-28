@@ -194,7 +194,7 @@ sudo systemctl enable --now PHES-ODM-Search-MCP
 sudo systemctl status PHES-ODM-Search-MCP
 ```
 
-The server listens on **127.0.0.1:8000** by default.  It is not exposed directly
+The server listens on **127.0.0.1:3840** by default.  It is not exposed directly
 to the network; nginx handles all external traffic.
 
 ---
@@ -217,7 +217,7 @@ server {
     server_name your.domain.example;
 
     location / {
-        proxy_pass         http://127.0.0.1:8000;
+        proxy_pass         http://127.0.0.1:3840;
         proxy_http_version 1.1;
 
         proxy_set_header   Host              $host;

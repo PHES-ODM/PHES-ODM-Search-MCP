@@ -59,9 +59,9 @@ ENV PATH="/venv/bin:$PATH" \
     ODM_STORE=embeddings \
     ODM_MODEL=all-MiniLM-L6-v2 \
     ODM_HOST=0.0.0.0 \
-    ODM_PORT=8000 \
+    ODM_PORT=3840 \
     ODM_TRANSPORT=http
 
-EXPOSE 8000
+EXPOSE 3840
 
 CMD ["python", "-m", "odm_search_mcp.server"]

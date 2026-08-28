@@ -76,7 +76,9 @@ vectors and are much faster.
 | `--store DIR` | `ODM_STORE` | `embeddings/` | Directory for cached embeddings |
 | `--model NAME` | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
 | `--rebuild` | — | false | Rebuild the embeddings index and exit (does not start the server) |
-| `--transport` | — | `stdio` | MCP transport: `stdio`, `http` (streamable HTTP), or `sse` |
+| `--transport` | `ODM_TRANSPORT` | `stdio` | MCP transport: `stdio`, `http` (streamable HTTP), or `sse` |
+| `--host ADDR` | `ODM_HOST` | `127.0.0.1` | Bind address for the HTTP/SSE transports (ignored for `stdio`) |
+| `--port N` | `ODM_PORT` | `3840` | Port for the HTTP/SSE transports (ignored for `stdio`) |
 
 Use `--rebuild` to pre-build (or re-build) the embeddings index without
 starting the server.  The process exits automatically once the index is

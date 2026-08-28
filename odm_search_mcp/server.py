@@ -320,8 +320,8 @@ def _parse_args() -> argparse.Namespace:
                    help="MCP transport (default: stdio; env: ODM_TRANSPORT)")
     p.add_argument("--host", default=os.environ.get("ODM_HOST", "127.0.0.1"),
                    help="Host address for HTTP server (default: 127.0.0.1)")
-    p.add_argument("--port", type=int, default=int(os.environ.get("ODM_PORT", "8000")),
-                   help="Port for HTTP server (default: 8000)")
+    p.add_argument("--port", type=int, default=int(os.environ.get("ODM_PORT", "3840")),
+                   help="Port for HTTP server (default: 3840)")
     return p.parse_args()
 
 

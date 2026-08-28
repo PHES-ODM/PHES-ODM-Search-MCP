@@ -45,7 +45,7 @@ instantly with no runtime download or index build. The **runtime** stage is a
 slim final image. If you change `odm_v3.yaml`, rebuild to re-index.
 
 `docker-compose.yml` runs two services: **`mcp`** (the FastMCP server on port
-8000, internal to the Docker network) and **`nginx`** (a reverse proxy exposing
+3840, internal to the Docker network) and **`nginx`** (a reverse proxy exposing
 ports 80/443). A third, `certbot`, is used only for
 [TLS](#tls-with-lets-encrypt-optional) and stays off by default.
 
@@ -159,7 +159,7 @@ sensible defaults):
 | `ODM_STORE` | `embeddings` | Cached embeddings index directory |
 | `ODM_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model name |
 | `ODM_HOST` | `0.0.0.0` | Bind host (set automatically by Docker) |
-| `ODM_PORT` | `8000` | Port the server listens on |
+| `ODM_PORT` | `3840` | Port the server listens on |
 | `ODM_BATCH_SIZE` | `64` | Parts encoded per pass when building the index. Lower it (e.g. `8`) to cut peak memory on small hosts; only affects rebuild, not the index itself. |
 
 ---

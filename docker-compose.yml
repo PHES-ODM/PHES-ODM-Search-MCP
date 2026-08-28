@@ -7,9 +7,9 @@ services:
     environment:
       ODM_TRANSPORT: "http"
       ODM_HOST: "0.0.0.0"
-      ODM_PORT: "8000"
+      ODM_PORT: "3840"
     expose:
-      - "8000"
+      - "3840"
     # Uncomment the lines below to persist a rebuilt embeddings index on disk
     # rather than using the copy baked into the image.
     # volumes:
