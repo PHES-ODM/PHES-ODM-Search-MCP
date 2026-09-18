@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "ebi-ols": {
+      "type": "http",
+      "url": "https://www.ebi.ac.uk/ols4/api/mcp"
+    },
+    "phes-odm-search": {
+      "type": "stdio",
+      "command": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+      "args": ["-m", "odm_search_mcp.server"],
+      "env": {
+        "ODM_STORE": "/Users/mathewthomson/Documents/GitHub/PHES-ODM-Search-MCP/embeddings"
+      }
+    }
+  }
+}
